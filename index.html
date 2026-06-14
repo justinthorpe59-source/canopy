@@ -92,7 +92,7 @@
   .hero-lockup h1{
     font-family:'Archivo','Archivo Black',-apple-system,BlinkMacSystemFont,sans-serif;
     font-weight:800;font-stretch:125%;text-transform:uppercase;
-    color:#FFFFFF;margin:0;font-size:clamp(39px,6.4vw,89px);line-height:.92;letter-spacing:1px;
+    color:#FFFFFF;margin:0;font-size:clamp(35px,5.8vw,80px);line-height:.92;letter-spacing:1px;
     text-shadow:0 2px 22px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.3);
   }
   .hero-lockup .strap{
@@ -280,7 +280,7 @@
         <div class="hero-row">
           <div class="hero-lockup">
             <h1>Canopy</h1>
-            <p class="strap">Data worth looking at</p>
+            <p class="strap">Data, clarified.</p>
             <p class="byline">by Justin Thorpe</p>
           </div>
           <div class="hero-aside">
@@ -339,13 +339,57 @@
         <label for="charttype">Chart form</label>
         <select id="charttype">
           <option value="auto">Auto — let Canopy choose</option>
-          <option value="radial">Radial bars</option>
-          <option value="slope">Slope chart</option>
-          <option value="waffle">Dot matrix / waffle</option>
-          <option value="beeswarm">Beeswarm</option>
-          <option value="connected">Connected scatter</option>
-          <option value="dotstrip">Dot strip</option>
-          <option value="ridge">Ridge / isometric</option>
+          <optgroup label="Compare values">
+            <option value="slope">Slope chart</option>
+            <option value="dumbbell">Dumbbell chart</option>
+            <option value="lollipop">Lollipop chart</option>
+            <option value="diverging">Diverging bar</option>
+            <option value="dotplot">Dot plot</option>
+            <option value="bullet">Bullet chart</option>
+          </optgroup>
+          <optgroup label="Distribution">
+            <option value="beeswarm">Beeswarm</option>
+            <option value="violin">Violin plot</option>
+            <option value="ridge">Ridgeline / Joy plot</option>
+            <option value="strip">Strip plot</option>
+            <option value="dotmatrix">Dot matrix</option>
+            <option value="waffle">Waffle chart</option>
+          </optgroup>
+          <optgroup label="Part of a whole">
+            <option value="treemap">Treemap</option>
+            <option value="sunburst">Sunburst</option>
+            <option value="marimekko">Marimekko / Mosaic</option>
+            <option value="unit">Unit / Pictogram chart</option>
+            <option value="pack">Circle packing</option>
+          </optgroup>
+          <optgroup label="Change over time">
+            <option value="bump">Bump chart</option>
+            <option value="stream">Streamgraph</option>
+            <option value="horizon">Horizon chart</option>
+            <option value="calendar">Calendar heatmap</option>
+            <option value="connected">Connected scatter</option>
+            <option value="race">Animated race</option>
+          </optgroup>
+          <optgroup label="Flow &amp; relationships">
+            <option value="sankey">Sankey diagram</option>
+            <option value="chord">Chord diagram</option>
+            <option value="network">Network diagram</option>
+            <option value="parallel">Parallel coordinates</option>
+            <option value="alluvial">Alluvial diagram</option>
+          </optgroup>
+          <optgroup label="Creative &amp; editorial">
+            <option value="constellation">Constellation scatter</option>
+            <option value="isotype">ISOTYPE icon array</option>
+            <option value="contour">Contour / terrain</option>
+            <option value="flowfield">Flow field</option>
+            <option value="halo">Halo rings</option>
+            <option value="smallmult">Small multiples</option>
+            <option value="radialheat">Radial heatmap</option>
+            <option value="spiral">Spiral chart</option>
+            <option value="voronoi">Voronoi</option>
+            <option value="isobar">Isometric bar</option>
+            <option value="propcircles">Proportional circles</option>
+          </optgroup>
         </select>
       </div>
 
@@ -548,22 +592,44 @@ function chooseChart(data, insight){
   // trend wording on an ordered category axis -> layered ridge
   if (kw(/\b(over time|overtime|trend|trends|trended|trajectory|seasonal|season|wave|ridge|ridges|rising|momentum|by month|by year|across)\b/) && labels.length && nums.length>=1 && n>=5) return 'ridge';
 
-  // shape-based fallback
-  if (nums.length >= 2 && labels.length >= 1){
-    return nums.length === 2 ? 'slope' : 'connected';
-  }
+  // richer intent -> creative / structural forms
+  if (kw(/\b(constellation|star|cosmos|galaxy|scatter ?map)\b/)) return 'constellation';
+  if (kw(/\b(network|node|nodes|web of|graph of|interconnected)\b/)) return 'constellation';
+  if (kw(/\b(flow|sankey|pipeline|funnel|stages?|pathway|routes?)\b/)) return 'parallel';
+  if (kw(/\b(profile|profiles|across (several|many) (metrics|dimensions)|multivariate|trade ?offs?)\b/) && nums.length>=3) return 'parallel';
+  if (kw(/\b(hierarch|nested|tree ?map|portfolio|made up of|composed of|breakdown of)\b/) && labels.length && nums.length>=1) return 'treemap';
+  if (kw(/\b(pictogram|isotype|people|population|how many|units?)\b/) && labels.length && nums.length>=1) return 'isotype';
+  if (kw(/\b(density|terrain|elevation|topograph|contour|hot ?spots?|where .* concentrate)\b/)) return 'contour';
+  if (kw(/\b(standings?|positions?|league table|climbed|overtook|leapfrog|rank(ing)? over)\b/) && nums.length>=2) return 'bump';
+  if (kw(/\b(race|fastest growing|grew fastest|over the years)\b/) && nums.length>=2) return 'race';
+  if (kw(/\b(stream|ebb|flow over time|composition over time|wax|wane)\b/) && nums.length>=2) return 'stream';
+  if (kw(/\b(violin|density curve|how .* distributed)\b/) && nums.length>=1) return 'violin';
+  if (kw(/\b(dumbbell|gap between|disparity|two groups|men vs women|then vs now)\b/) && nums.length>=2) return 'dumbbell';
+
+  // shape-based fallback (favours interesting, non-default forms)
+  if (nums.length >= 3 && labels.length >= 1) return 'parallel';
+  if (nums.length >= 2 && labels.length >= 1) return 'slope';
   if (nums.length >= 2 && labels.length === 0) return 'connected';
   if (nums.length === 1 && labels.length >= 1){
     const vals = data.rows.map(r => +r[nums[0].name]).filter(v=>!isNaN(v));
     const sum = d3.sum(vals);
-    if (vals.every(v=>v>=0) && (Math.abs(sum-100) < 3 || Math.abs(sum-1) < 0.03)) return 'waffle';
+    if (vals.every(v=>v>=0) && (Math.abs(sum-100) < 3 || Math.abs(sum-1) < 0.03)) return n > 7 ? 'treemap' : 'waffle';
     if (n > 16) return 'dotstrip';
     return 'radial';
   }
   if (nums.length === 1 && labels.length === 0) return 'beeswarm';
   return 'radial';
 }
-const TYPE_NAMES = {radial:'Radial bars', slope:'Slope chart', waffle:'Dot-matrix', beeswarm:'Beeswarm', connected:'Connected scatter', dotstrip:'Dot strip', ridge:'Ridge / isometric'};
+const TYPE_NAMES = {
+  radial:'Radial bars', slope:'Slope chart', waffle:'Waffle chart', beeswarm:'Beeswarm', connected:'Connected scatter', dotstrip:'Dot strip', ridge:'Ridgeline',
+  dumbbell:'Dumbbell chart', lollipop:'Lollipop chart', diverging:'Diverging bar', dotplot:'Dot plot', bullet:'Bullet chart',
+  violin:'Violin plot', strip:'Strip plot', dotmatrix:'Dot matrix',
+  treemap:'Treemap', sunburst:'Sunburst', marimekko:'Marimekko / Mosaic', isotype:'ISOTYPE array', unit:'Pictogram chart', pack:'Circle packing',
+  bump:'Bump chart', stream:'Streamgraph', horizon:'Horizon chart', calendar:'Calendar heatmap', race:'Animated race',
+  sankey:'Sankey diagram', chord:'Chord diagram', network:'Network diagram', parallel:'Parallel coordinates', alluvial:'Alluvial diagram',
+  constellation:'Constellation scatter', contour:'Contour / terrain', flowfield:'Flow field', halo:'Halo rings', smallmult:'Small multiples',
+  radialheat:'Radial heatmap', spiral:'Spiral chart', voronoi:'Voronoi', isobar:'Isometric bar', propcircles:'Proportional circles'
+};
 
 /* ---------- formatting ---------- */
 function makeFmt(values){
@@ -919,6 +985,534 @@ function renderRidge(svg, ctx){
 }
 
 /* ===================================================================
+   EXTENDED RENDERERS (round 6) — shared helpers
+   =================================================================== */
+function _lab(r,cat,i){ return cat!=null ? String(r[cat]) : ('#'+(i+1)); }
+function palOf(c){
+  const base=[c.accent, c.ink, mix(c.accent,c.ink,.45), mix(c.accent,c.bg,.30),
+              mix(c.ink,c.bg,.42), mix(c.accent,c.ink,.18), mix(c.accent,c.bg,.55), mix(c.ink,c.bg,.66)];
+  return i => base[((i%base.length)+base.length)%base.length];
+}
+function contrastInk(hex){ const r=d3.rgb(hex); const L=(0.2126*r.r+0.7152*r.g+0.0722*r.b)/255; return L>0.6?'#1A1A1A':'#fff'; }
+function flatData(ctx){
+  const {rows,cat,num}=ctx;
+  return rows.map((r,i)=>({label:_lab(r,cat,i), value:+r[num]})).filter(d=>!isNaN(d.value));
+}
+function seriesData(ctx){
+  const {rows,cat,nums}=ctx; const keys=nums.map(n=>n.name);
+  return { keys, rows: rows.map((r,i)=>({label:_lab(r,cat,i), vals:keys.map(k=>+r[k])})) };
+}
+
+/* ---- COMPARE VALUES ---- */
+function renderLollipop(svg,ctx){
+  const c=ctx.c, fmt=ctx.fmt, W=ctx.W;
+  let data=flatData(ctx).sort((a,b)=>b.value-a.value);
+  const maxLab=d3.max(data,d=>d.label.length)||4;
+  const m={t:18,r:64,b:18,l:Math.min(190, maxLab*7.2+16)};
+  const rowH=Math.max(24, Math.min(42, 460/data.length));
+  const H=m.t+m.b+data.length*rowH;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const x=d3.scaleLinear().domain([0, d3.max(data,d=>d.value)||1]).nice().range([m.l, W-m.r]);
+  const y=i=>m.t+i*rowH+rowH/2; const g=svg.append('g');
+  data.forEach((d,i)=>{
+    g.append('line').attr('x1',x(0)).attr('x2',x(d.value)).attr('y1',y(i)).attr('y2',y(i)).attr('stroke',mix(c.ink,c.bg,.7)).attr('stroke-width',2);
+    g.append('circle').attr('class','cv-mark').attr('cx',x(d.value)).attr('cy',y(i)).attr('r',7).attr('fill',c.accent).attr('data-label',d.label).attr('data-value',fmt(d.value)).style('--d',(i*0.03)+'s').classed('cv-in',true);
+    g.append('text').attr('x',m.l-10).attr('y',y(i)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12.5px').text(d.label);
+    g.append('text').attr('x',x(d.value)+12).attr('y',y(i)).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','12px').attr('class','cv-val').text(fmt(d.value));
+  });
+  return {n:data.length};
+}
+function renderDumbbell(svg,ctx){
+  const c=ctx.c, fmt=ctx.fmt, W=ctx.W, nums=ctx.nums;
+  if(nums.length<2) return renderLollipop(svg,ctx);
+  const ka=nums[0].name, kb=nums[1].name;
+  let data=ctx.rows.map((r,i)=>({label:_lab(r,ctx.cat,i),a:+r[ka],b:+r[kb]})).filter(d=>!isNaN(d.a)&&!isNaN(d.b)).sort((p,q)=>q.b-p.b);
+  const maxLab=d3.max(data,d=>d.label.length)||4;
+  const m={t:34,r:54,b:18,l:Math.min(190,maxLab*7.2+16)};
+  const rowH=Math.max(24,Math.min(42,440/data.length)); const H=m.t+m.b+data.length*rowH;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const x=d3.scaleLinear().domain([d3.min(data,d=>Math.min(d.a,d.b)), d3.max(data,d=>Math.max(d.a,d.b))]).nice().range([m.l,W-m.r]);
+  const y=i=>m.t+i*rowH+rowH/2; const g=svg.append('g');
+  g.append('circle').attr('cx',m.l).attr('cy',15).attr('r',6).attr('fill',mix(c.ink,c.bg,.45));
+  g.append('text').attr('x',m.l+12).attr('y',15).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','12px').text(ka);
+  g.append('circle').attr('cx',m.l+30+ka.length*7).attr('cy',15).attr('r',6).attr('fill',c.accent);
+  g.append('text').attr('x',m.l+42+ka.length*7).attr('y',15).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','12px').text(kb);
+  data.forEach((d,i)=>{
+    g.append('line').attr('x1',x(d.a)).attr('x2',x(d.b)).attr('y1',y(i)).attr('y2',y(i)).attr('stroke',mix(c.ink,c.bg,.6)).attr('stroke-width',3);
+    g.append('circle').attr('class','cv-mark').attr('cx',x(d.a)).attr('cy',y(i)).attr('r',6).attr('fill',mix(c.ink,c.bg,.45)).attr('data-label',d.label+' · '+ka).attr('data-value',fmt(d.a));
+    g.append('circle').attr('class','cv-mark').attr('cx',x(d.b)).attr('cy',y(i)).attr('r',6).attr('fill',c.accent).attr('data-label',d.label+' · '+kb).attr('data-value',fmt(d.b));
+    g.append('text').attr('x',m.l-10).attr('y',y(i)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12.5px').text(d.label);
+  });
+  return {n:data.length};
+}
+function renderDiverging(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
+  let data=flatData(ctx); const anyNeg=data.some(d=>d.value<0);
+  const base=anyNeg?0:d3.mean(data,d=>d.value);
+  data=data.map(d=>({label:d.label,value:d.value,dv:d.value-base})).sort((a,b)=>b.dv-a.dv);
+  const maxLab=d3.max(data,d=>d.label.length)||4;
+  const m={t:26,r:30,b:24,l:Math.min(190,maxLab*7.2+16)};
+  const rowH=Math.max(20,Math.min(40,440/data.length)); const H=m.t+m.b+data.length*rowH;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const mx=d3.max(data,d=>Math.abs(d.dv))||1;
+  const x=d3.scaleLinear().domain([-mx,mx]).nice().range([m.l,W-m.r]); const zero=x(0); const g=svg.append('g');
+  g.append('line').attr('x1',zero).attr('x2',zero).attr('y1',m.t-6).attr('y2',H-m.b+6).attr('stroke',mix(c.ink,c.bg,.5)).attr('stroke-width',1);
+  data.forEach((d,i)=>{
+    const yy=m.t+i*rowH, h=rowH-7, pos=d.dv>=0;
+    g.append('rect').attr('class','cv-mark').attr('x',pos?zero:x(d.dv)).attr('y',yy).attr('width',Math.abs(x(d.dv)-zero)).attr('height',h).attr('rx',3).attr('fill',pos?c.accent:mix(c.ink,c.bg,.4)).attr('data-label',d.label).attr('data-value',fmt(d.value));
+    g.append('text').attr('x',pos?zero-8:zero+8).attr('y',yy+h/2).attr('text-anchor',pos?'end':'start').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(d.label);
+  });
+  g.append('text').attr('x',zero).attr('y',m.t-12).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(anyNeg?'0':('mean '+fmt(base)));
+  return {n:data.length};
+}
+function renderBullet(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
+  let data=flatData(ctx).sort((a,b)=>b.value-a.value);
+  const target=d3.mean(data,d=>d.value), maxV=d3.max(data,d=>d.value)||1;
+  const maxLab=d3.max(data,d=>d.label.length)||4;
+  const m={t:18,r:54,b:18,l:Math.min(190,maxLab*7.2+16)};
+  const rowH=Math.max(26,Math.min(46,460/data.length)); const H=m.t+m.b+data.length*rowH;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const x=d3.scaleLinear().domain([0,maxV]).nice().range([m.l,W-m.r]); const g=svg.append('g');
+  data.forEach((d,i)=>{
+    const yy=m.t+i*rowH, h=rowH-12, cy=yy+h/2;
+    g.append('rect').attr('x',m.l).attr('y',yy).attr('width',x(maxV)-m.l).attr('height',h).attr('rx',4).attr('fill',mix(c.ink,c.bg,.85));
+    g.append('rect').attr('class','cv-mark').attr('x',m.l).attr('y',yy+h*0.22).attr('width',Math.max(0,x(d.value)-m.l)).attr('height',h*0.56).attr('rx',3).attr('fill',c.accent).attr('data-label',d.label).attr('data-value',fmt(d.value));
+    g.append('line').attr('x1',x(target)).attr('x2',x(target)).attr('y1',yy-2).attr('y2',yy+h+2).attr('stroke',c.ink).attr('stroke-width',2);
+    g.append('text').attr('x',m.l-10).attr('y',cy).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(d.label);
+    g.append('text').attr('x',x(d.value)+8).attr('y',cy).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','11px').attr('class','cv-val').text(fmt(d.value));
+  });
+  return {n:data.length};
+}
+
+/* ---- DISTRIBUTION ---- */
+function renderViolin(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=520;
+  const vals=ctx.rows.flatMap(r=>ctx.nums.map(n=>+r[n.name])).filter(v=>!isNaN(v));
+  if(vals.length<3) return renderBeeswarm(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const m={t:30,r:40,b:30,l:54};
+  const y=d3.scaleLinear().domain(d3.extent(vals)).nice().range([H-m.b,m.t]);
+  const kde=(kernel,X)=>V=>X.map(x=>[x, d3.mean(V,v=>kernel(x-v))]);
+  const epan=k=>v=>{v/=k; return Math.abs(v)<=1?0.75*(1-v*v)/k:0;};
+  const ticks=y.ticks(40); const bw=((d3.max(vals)-d3.min(vals))/12)||1;
+  const dens=kde(epan(bw),ticks)(vals); const maxD=d3.max(dens,d=>d[1])||1;
+  const cx=W/2, half=W*0.32; const xw=d3.scaleLinear().domain([0,maxD]).range([0,half]);
+  const area=d3.area().y(d=>y(d[0])).x0(d=>cx-xw(d[1])).x1(d=>cx+xw(d[1])).curve(d3.curveCatmullRom);
+  svg.append('path').datum(dens).attr('d',area).attr('fill',mix(c.accent,c.bg,.45)).attr('stroke',c.accent).attr('stroke-width',1.5);
+  const sorted=vals.slice().sort(d3.ascending);
+  const q1=d3.quantile(sorted,.25),md=d3.quantile(sorted,.5),q3=d3.quantile(sorted,.75);
+  svg.append('line').attr('x1',cx).attr('x2',cx).attr('y1',y(d3.min(vals))).attr('y2',y(d3.max(vals))).attr('stroke',c.ink).attr('stroke-width',1).attr('opacity',.4);
+  svg.append('rect').attr('x',cx-7).attr('y',y(q3)).attr('width',14).attr('height',y(q1)-y(q3)).attr('fill',c.ink).attr('opacity',.8);
+  svg.append('circle').attr('cx',cx).attr('cy',y(md)).attr('r',4).attr('fill',c.bg);
+  vals.forEach(v=>svg.append('circle').attr('cx',cx+(Math.random()-.5)*half*0.5).attr('cy',y(v)).attr('r',2.2).attr('fill',c.ink).attr('opacity',.22));
+  y.ticks(6).forEach(t=>svg.append('text').attr('class','cv-axis').attr('x',m.l-16).attr('y',y(t)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.inkSoft).text(fmt(t)));
+  return {n:vals.length};
+}
+
+/* ---- PART OF A WHOLE ---- */
+function renderTreemap(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=520;
+  const data=flatData(ctx).filter(d=>d.value>0);
+  if(!data.length) return renderRadial(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const root=d3.hierarchy({children:data}).sum(d=>d.value).sort((a,b)=>b.value-a.value);
+  d3.treemap().size([W,H]).paddingInner(3).round(true)(root);
+  const col=palOf(c), tot=root.value;
+  root.leaves().forEach((leaf,i)=>{
+    const g=svg.append('g').attr('transform',`translate(${leaf.x0},${leaf.y0})`);
+    const w=leaf.x1-leaf.x0, h=leaf.y1-leaf.y0, tc=contrastInk(col(i));
+    g.append('rect').attr('class','cv-mark').attr('width',w).attr('height',h).attr('rx',4).attr('fill',col(i)).attr('data-label',leaf.data.label).attr('data-value',fmt(leaf.value)+' ('+Math.round(leaf.value/tot*100)+'%)');
+    if(w>52&&h>26){ g.append('text').attr('x',8).attr('y',18).attr('fill',tc).attr('font-size','12.5px').attr('font-weight',600).text(leaf.data.label.slice(0,Math.floor(w/8)));
+      if(h>44) g.append('text').attr('x',8).attr('y',34).attr('fill',tc).attr('opacity',.85).attr('font-size','11px').text(fmt(leaf.value)); }
+  });
+  return {n:data.length};
+}
+function renderSunburst(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=540;
+  const data=flatData(ctx).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
+  if(!data.length) return renderRadial(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const cx=W/2,cy=H/2,R=Math.min(W,H)/2-30,r0=R*0.42,tot=d3.sum(data,d=>d.value),col=palOf(c);
+  let a0=-Math.PI/2; const arc=d3.arc().innerRadius(r0).outerRadius(R).padAngle(0.008).cornerRadius(2);
+  const g=svg.append('g').attr('transform',`translate(${cx},${cy})`);
+  data.forEach((d,i)=>{
+    const a1=a0+d.value/tot*2*Math.PI;
+    g.append('path').attr('class','cv-mark').attr('d',arc({startAngle:a0,endAngle:a1})).attr('fill',col(i)).attr('data-label',d.label).attr('data-value',fmt(d.value)+' ('+Math.round(d.value/tot*100)+'%)');
+    const mid=(a0+a1)/2, lr=(r0+R)/2;
+    if(a1-a0>0.18) g.append('text').attr('x',Math.sin(mid)*lr).attr('y',-Math.cos(mid)*lr).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',contrastInk(col(i))).attr('font-size','11px').text(d.label.length>10?d.label.slice(0,9)+'…':d.label);
+    a0=a1;
+  });
+  g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','13px').text('Total '+fmt(tot));
+  return {n:data.length};
+}
+function renderMarimekko(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=420;
+  const data=flatData(ctx).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
+  if(!data.length) return renderRadial(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const m={t:20,r:20,b:50,l:20}, tot=d3.sum(data,d=>d.value), col=palOf(c);
+  let x=m.l; const innerW=W-m.l-m.r, top=m.t, bot=H-m.b;
+  data.forEach((d,i)=>{
+    const w=d.value/tot*innerW;
+    svg.append('rect').attr('class','cv-mark').attr('x',x).attr('y',top).attr('width',Math.max(0,w-2)).attr('height',bot-top).attr('fill',col(i)).attr('data-label',d.label).attr('data-value',fmt(d.value)+' ('+Math.round(d.value/tot*100)+'%)');
+    if(w>40){ svg.append('text').attr('x',x+w/2-1).attr('y',(top+bot)/2).attr('text-anchor','middle').attr('fill',contrastInk(col(i))).attr('font-size','12px').attr('font-weight',600).text(d.label.length>12?d.label.slice(0,11)+'…':d.label);
+      svg.append('text').attr('x',x+w/2-1).attr('y',bot+18).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(Math.round(d.value/tot*100)+'%'); }
+    x+=w;
+  });
+  return {n:data.length};
+}
+function renderIsotype(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
+  const data=flatData(ctx).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
+  if(!data.length) return renderRadial(svg,ctx);
+  const maxV=d3.max(data,d=>d.value), rawUnit=maxV/16, mag=Math.pow(10,Math.floor(Math.log10(rawUnit||1)));
+  const unit=Math.max(1,Math.ceil((rawUnit||1)/mag)*mag), cols=Math.max(1,Math.ceil(maxV/unit));
+  const maxLab=d3.max(data,d=>d.label.length)||4, lx=Math.min(180,maxLab*7+10);
+  const iconW=Math.min(26,(W-lx-70)/cols), rowH=iconW+16, H=30+data.length*rowH+24;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const PERSON='M12 2a3 3 0 100 6 3 3 0 000-6zM7 22v-6H5V11a3 3 0 013-3h8a3 3 0 013 3v5h-2v6h-3v-6h-2v6H7z';
+  const g=svg.append('g').attr('transform','translate(0,16)');
+  data.forEach((d,i)=>{
+    const y=i*rowH, filled=Math.round(d.value/unit);
+    g.append('text').attr('x',lx-12).attr('y',y+iconW/2).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12.5px').text(d.label);
+    for(let k=0;k<cols;k++){ const gx=lx+k*iconW, on=k<filled;
+      g.append('path').attr('d',PERSON).attr('transform',`translate(${gx},${y}) scale(${iconW/24})`).attr('fill',on?c.accent:mix(c.ink,c.bg,.86)).attr('class',on?'cv-mark':null).attr('data-label',on?d.label:null).attr('data-value',on?fmt(d.value):null); }
+    g.append('text').attr('x',lx+cols*iconW+10).attr('y',y+iconW/2).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','11.5px').text(fmt(d.value));
+  });
+  svg.append('text').attr('x',0).attr('y',H-6).attr('fill',c.inkSoft).attr('font-size','11px').text('1 figure = '+fmt(unit));
+  return {n:data.length};
+}
+function renderPack(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=520;
+  const data=flatData(ctx).filter(d=>d.value>0);
+  if(!data.length) return renderRadial(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const root=d3.hierarchy({children:data}).sum(d=>d.value).sort((a,b)=>b.value-a.value);
+  d3.pack().size([W-4,H-4]).padding(4)(root); const col=palOf(c);
+  root.leaves().forEach((leaf,i)=>{
+    const g=svg.append('g').attr('transform',`translate(${leaf.x+2},${leaf.y+2})`), tc=contrastInk(col(i));
+    g.append('circle').attr('class','cv-mark').attr('r',leaf.r).attr('fill',col(i)).attr('fill-opacity',.9).attr('data-label',leaf.data.label).attr('data-value',fmt(leaf.value));
+    if(leaf.r>22){ g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',tc).attr('font-size',Math.min(14,leaf.r/2.4)+'px').attr('font-weight',600).text(leaf.data.label.length>9?leaf.data.label.slice(0,8)+'…':leaf.data.label);
+      if(leaf.r>34) g.append('text').attr('text-anchor','middle').attr('y',16).attr('fill',tc).attr('opacity',.85).attr('font-size','11px').text(fmt(leaf.value)); }
+  });
+  return {n:data.length};
+}
+function renderPropCircles(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
+  const data=flatData(ctx).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
+  if(!data.length) return renderRadial(svg,ctx);
+  const maxV=d3.max(data,d=>d.value), gap=W/data.length, rMax=Math.min(70,gap/2-6);
+  const r=d3.scaleSqrt().domain([0,maxV]).range([0,rMax]), baseY=rMax+40, H=baseY+rMax+50, col=palOf(c);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  data.forEach((d,i)=>{
+    const cx=gap*i+gap/2;
+    svg.append('circle').attr('class','cv-mark').attr('cx',cx).attr('cy',baseY).attr('r',r(d.value)).attr('fill',col(i)).attr('fill-opacity',.85).attr('data-label',d.label).attr('data-value',fmt(d.value)).style('--d',(i*0.04)+'s').classed('cv-in',true);
+    svg.append('text').attr('x',cx).attr('y',baseY+rMax+18).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11.5px').text(d.label.length>10?d.label.slice(0,9)+'…':d.label);
+    svg.append('text').attr('x',cx).attr('y',baseY+rMax+33).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(fmt(d.value));
+  });
+  return {n:data.length};
+}
+
+/* ---- CHANGE OVER TIME ---- */
+function renderBump(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=480;
+  const {keys,rows}=seriesData(ctx);
+  if(keys.length<2) return renderDotstrip(svg,ctx);
+  const ents=rows.filter(r=>r.vals.every(v=>!isNaN(v)));
+  if(ents.length<2) return renderDotstrip(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const m={t:30,r:120,b:36,l:120}, N=ents.length;
+  const ranks=keys.map((k,pi)=>{ const order=ents.map((e,ei)=>({ei,v:e.vals[pi]})).sort((a,b)=>b.v-a.v); const rk={}; order.forEach((o,idx)=>rk[o.ei]=idx+1); return rk; });
+  const x=d3.scalePoint().domain(keys).range([m.l,W-m.r]), y=d3.scaleLinear().domain([1,N]).range([m.t,H-m.b]), col=palOf(c);
+  keys.forEach(k=>svg.append('text').attr('class','cv-axis').attr('x',x(k)).attr('y',H-m.b+22).attr('text-anchor','middle').attr('fill',c.inkSoft).text(k));
+  const line=d3.line().x((d,i)=>x(keys[i])).y(d=>y(d)).curve(d3.curveMonotoneX);
+  ents.forEach((e,ei)=>{
+    const series=keys.map((k,pi)=>ranks[pi][ei]), cc=col(ei);
+    svg.append('path').attr('d',line(series)).attr('fill','none').attr('stroke',cc).attr('stroke-width',3).attr('stroke-linecap','round').attr('opacity',.9);
+    series.forEach((rk,pi)=>svg.append('circle').attr('class','cv-mark').attr('cx',x(keys[pi])).attr('cy',y(rk)).attr('r',5).attr('fill',cc).attr('data-label',e.label+' · '+keys[pi]).attr('data-value','rank '+rk+' · '+fmt(e.vals[pi])));
+    svg.append('text').attr('x',m.l-12).attr('y',y(series[0])).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(e.label.length>14?e.label.slice(0,13)+'…':e.label);
+    svg.append('text').attr('x',W-m.r+12).attr('y',y(series[series.length-1])).attr('dominant-baseline','middle').attr('fill',cc).attr('font-size','12px').text('#'+series[series.length-1]);
+  });
+  return {n:ents.length};
+}
+function renderStream(svg,ctx){
+  const c=ctx.c,W=ctx.W,H=460;
+  const {keys,rows}=seriesData(ctx);
+  if(keys.length<2) return renderRidge(svg,ctx);
+  const recs=rows.map(r=>{const o={_x:r.label}; keys.forEach((k,i)=>o[k]=isNaN(r.vals[i])?0:r.vals[i]); return o;});
+  if(recs.length<2) return renderRidge(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const m={t:20,r:20,b:40,l:20};
+  const series=d3.stack().keys(keys).offset(d3.stackOffsetWiggle).order(d3.stackOrderInsideOut)(recs);
+  const x=d3.scalePoint().domain(recs.map(r=>r._x)).range([m.l,W-m.r]);
+  const y=d3.scaleLinear().domain([d3.min(series,s=>d3.min(s,d=>d[0])),d3.max(series,s=>d3.max(s,d=>d[1]))]).range([H-m.b,m.t]);
+  const col=palOf(c), area=d3.area().x((d,i)=>x(recs[i]._x)).y0(d=>y(d[0])).y1(d=>y(d[1])).curve(d3.curveBasis);
+  series.forEach((s,i)=>svg.append('path').attr('class','cv-mark').attr('d',area(s)).attr('fill',col(i)).attr('fill-opacity',.9).attr('data-label',keys[i]).attr('data-value','layer'));
+  const idxs=recs.length<=7?d3.range(recs.length):[0,Math.floor(recs.length/2),recs.length-1];
+  idxs.forEach(i=>svg.append('text').attr('class','cv-axis').attr('x',x(recs[i]._x)).attr('y',H-m.b+22).attr('text-anchor','middle').attr('fill',c.inkSoft).text(recs[i]._x));
+  keys.forEach((k,i)=>{ const lx=m.l+i*Math.min(120,(W-40)/keys.length); svg.append('rect').attr('x',lx).attr('y',6).attr('width',10).attr('height',10).attr('fill',col(i)); svg.append('text').attr('x',lx+14).attr('y',15).attr('fill',c.inkSoft).attr('font-size','11px').text(k.length>12?k.slice(0,11)+'…':k); });
+  return {n:keys.length};
+}
+function renderHorizon(svg,ctx){
+  const c=ctx.c,W=ctx.W,fmt=ctx.fmt;
+  const data=flatData(ctx);
+  if(data.length<3) return renderRidge(svg,ctx);
+  const H=200, bands=3, m={l:10,r:10};
+  svg.attr('viewBox',`0 0 ${W} ${H+40}`);
+  const x=d3.scalePoint().domain(d3.range(data.length)).range([m.l,W-m.r]);
+  const maxV=d3.max(data,d=>Math.abs(d.value))||1, bandMax=maxV/bands;
+  const y=d3.scaleLinear().domain([0,bandMax]).range([H,0]);
+  const area=d3.area().x((d,i)=>x(i)).y0(H).y1(d=>y(d)).curve(d3.curveBasis);
+  for(let b=0;b<bands;b++){ const vals=data.map(d=>Math.max(0,Math.min(bandMax,Math.abs(d.value)-b*bandMax))); svg.append('path').attr('d',area(vals)).attr('fill',mix(c.accent,c.bg,.15+b*0.28)); }
+  svg.append('text').attr('x',m.l).attr('y',H+24).attr('fill',c.inkSoft).attr('font-size','11px').text(data[0].label);
+  svg.append('text').attr('x',W-m.r).attr('y',H+24).attr('text-anchor','end').attr('fill',c.inkSoft).attr('font-size','11px').text(data[data.length-1].label);
+  svg.append('text').attr('x',W/2).attr('y',H+24).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text('peak '+fmt(maxV));
+  return {n:data.length};
+}
+function renderCalendar(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
+  const data=flatData(ctx);
+  if(!data.length) return renderRadial(svg,ctx);
+  const n=data.length, cols=Math.ceil(Math.sqrt(n*1.6)), rowsN=Math.ceil(n/cols), pad=4, cell=Math.min(54,(W-20)/cols-pad), H=rowsN*(cell+pad)+40;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const ext=d3.extent(data,d=>d.value), seq=d3.scaleSequential().domain(ext).interpolator(t=>mix(c.bg,c.accent,0.15+0.85*t));
+  data.forEach((d,i)=>{
+    const r=Math.floor(i/cols), cc=i%cols, xx=10+cc*(cell+pad), yy=20+r*(cell+pad), fillc=seq(d.value);
+    svg.append('rect').attr('class','cv-mark').attr('x',xx).attr('y',yy).attr('width',cell).attr('height',cell).attr('rx',3).attr('fill',fillc).attr('data-label',d.label).attr('data-value',fmt(d.value));
+    if(cell>34) svg.append('text').attr('x',xx+cell/2).attr('y',yy+cell/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',contrastInk(fillc)).attr('font-size','10px').text(d.label.length>6?d.label.slice(0,5):d.label);
+  });
+  return {n:n};
+}
+function renderRace(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=460;
+  const {keys,rows}=seriesData(ctx);
+  if(keys.length<2) return renderLollipop(svg,ctx);
+  const ents=rows.filter(r=>r.vals.some(v=>!isNaN(v)));
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const m={t:46,r:80,b:20,l:130}, topN=Math.min(ents.length,10);
+  const x=d3.scaleLinear().range([m.l,W-m.r]), barH=(H-m.t-m.b)/topN-8, col=palOf(c);
+  const colorByLabel={}; ents.forEach((e,i)=>colorByLabel[e.label]=col(i));
+  const periodText=svg.append('text').attr('x',W-20).attr('y',H-20).attr('text-anchor','end').attr('fill',mix(c.ink,c.bg,.4)).attr('font-size','30px').attr('font-weight',700);
+  const g=svg.append('g'); let frame=0;
+  function draw(pi){
+    const snap=ents.map(e=>({label:e.label,value:isNaN(e.vals[pi])?0:e.vals[pi]})).sort((a,b)=>b.value-a.value).slice(0,topN);
+    x.domain([0,d3.max(snap,d=>d.value)||1]);
+    const sel=g.selectAll('g.bar').data(snap,d=>d.label);
+    const ent=sel.enter().append('g').attr('class','bar');
+    ent.append('rect').attr('x',m.l).attr('height',barH).attr('rx',4);
+    ent.append('text').attr('class','lbl').attr('text-anchor','end').attr('dominant-baseline','middle').attr('font-size','12px');
+    ent.append('text').attr('class','val').attr('dominant-baseline','middle').attr('font-size','12px');
+    const all=ent.merge(sel);
+    all.transition().duration(700).attr('transform',(d,i)=>`translate(0,${m.t+i*((H-m.t-m.b)/topN)})`);
+    all.select('rect').transition().duration(700).attr('width',d=>Math.max(0,x(d.value)-m.l)).attr('fill',d=>colorByLabel[d.label]||c.accent);
+    all.select('text.lbl').attr('x',m.l-10).attr('y',barH/2).attr('fill',c.ink).text(d=>d.label.length>16?d.label.slice(0,15)+'…':d.label);
+    all.select('text.val').attr('y',barH/2).attr('fill',c.inkSoft).transition().duration(700).attr('x',d=>x(d.value)+8).tween('t',function(d){const self=d3.select(this);return ()=>self.text(fmt(d.value));});
+    sel.exit().remove(); periodText.text(keys[pi]);
+  }
+  draw(0);
+  if(window.__cvTimer) clearInterval(window.__cvTimer);
+  window.__cvTimer=setInterval(()=>{ frame=(frame+1)%keys.length; draw(frame); },1500);
+  return {n:ents.length};
+}
+
+/* ---- FLOW & RELATIONSHIPS ---- */
+function renderParallel(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=460, dims=ctx.nums.map(n=>n.name);
+  if(dims.length<2) return renderDotstrip(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const m={t:30,r:44,b:40,l:44}, x=d3.scalePoint().domain(dims).range([m.l,W-m.r]), yByDim={};
+  dims.forEach(d=>{ const vals=ctx.rows.map(r=>+r[d]).filter(v=>!isNaN(v)); yByDim[d]=d3.scaleLinear().domain(d3.extent(vals)).nice().range([H-m.b,m.t]); });
+  const col=palOf(c);
+  ctx.rows.forEach((r,i)=>{
+    const pts=dims.map(d=>[x(d),yByDim[d](+r[d])]); if(pts.some(p=>isNaN(p[1]))) return;
+    svg.append('path').attr('class','cv-mark').attr('d',d3.line()(pts)).attr('fill','none').attr('stroke',col(i)).attr('stroke-width',1.6).attr('opacity',.62).attr('data-label',_lab(r,ctx.cat,i)).attr('data-value',dims.map(d=>fmt(+r[d])).join(' · '));
+  });
+  dims.forEach(d=>{
+    svg.append('line').attr('x1',x(d)).attr('x2',x(d)).attr('y1',m.t).attr('y2',H-m.b).attr('stroke',mix(c.ink,c.bg,.6)).attr('stroke-width',1);
+    svg.append('text').attr('x',x(d)).attr('y',m.t-12).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','12px').text(d.length>14?d.slice(0,13)+'…':d);
+    const sc=yByDim[d]; sc.ticks(5).forEach(t=>svg.append('text').attr('class','cv-axis').attr('x',x(d)-8).attr('y',sc(t)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','10px').text(fmt(t)));
+  });
+  return {n:ctx.rows.length};
+}
+
+/* ---- CREATIVE & EDITORIAL ---- */
+function renderConstellation(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=520;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const gid='cg'+Math.floor(Math.random()*1e6);
+  const grad=svg.append('defs').append('radialGradient').attr('id',gid).attr('cx','50%').attr('cy','42%').attr('r','75%');
+  grad.append('stop').attr('offset','0%').attr('stop-color','#16284a');
+  grad.append('stop').attr('offset','100%').attr('stop-color','#0c1730');
+  svg.append('rect').attr('width',W).attr('height',H).attr('rx',10).attr('fill',`url(#${gid})`);
+  for(let i=0;i<80;i++) svg.append('circle').attr('cx',Math.random()*W).attr('cy',Math.random()*H).attr('r',Math.random()*1.1+.2).attr('fill','#fff').attr('opacity',Math.random()*.5+.1);
+  const nums=ctx.nums, rows=ctx.rows, pad=46; let pts;
+  if(nums.length>=2){
+    const xs=d3.scaleLinear().domain(d3.extent(rows,r=>+r[nums[0].name])).nice().range([pad,W-pad]);
+    const ys=d3.scaleLinear().domain(d3.extent(rows,r=>+r[nums[1].name])).nice().range([H-pad,pad]);
+    const sv=nums.length>=3?rows.map(r=>+r[nums[2].name]):rows.map(()=>1);
+    const ss=d3.scaleSqrt().domain(d3.extent(sv)).range([3,9]);
+    pts=rows.map((r,i)=>({x:xs(+r[nums[0].name]),y:ys(+r[nums[1].name]),r:ss(sv[i]),label:_lab(r,ctx.cat,i),val:fmt(+r[nums[0].name])}));
+  } else {
+    const data=flatData(ctx);
+    const xs=d3.scaleLinear().domain([0,Math.max(1,data.length-1)]).range([pad,W-pad]);
+    const ys=d3.scaleLinear().domain(d3.extent(data,d=>d.value)).nice().range([H-pad,pad]);
+    const ss=d3.scaleSqrt().domain(d3.extent(data,d=>d.value)).range([3,10]);
+    pts=data.map((d,i)=>({x:xs(i),y:ys(d.value),r:ss(d.value),label:d.label,val:fmt(d.value)}));
+  }
+  pts=pts.filter(p=>!isNaN(p.x)&&!isNaN(p.y));
+  pts.forEach((p,i)=>{ const others=pts.map((q,j)=>({j,d:Math.hypot(p.x-q.x,p.y-q.y)})).filter(o=>o.j!==i).sort((a,b)=>a.d-b.d).slice(0,2);
+    others.forEach(o=>{ const q=pts[o.j]; svg.append('line').attr('x1',p.x).attr('y1',p.y).attr('x2',q.x).attr('y2',q.y).attr('stroke','#9fc6ff').attr('stroke-width',.6).attr('opacity',.28); }); });
+  pts.forEach(p=>{ svg.append('circle').attr('cx',p.x).attr('cy',p.y).attr('r',p.r*2.6).attr('fill','#cfe3ff').attr('opacity',.12);
+    svg.append('circle').attr('class','cv-mark').attr('cx',p.x).attr('cy',p.y).attr('r',p.r).attr('fill','#eaf2ff').attr('stroke',c.accent).attr('stroke-width',1).attr('data-label',p.label).attr('data-value',p.val); });
+  return {n:pts.length};
+}
+function renderContour(svg,ctx){
+  const c=ctx.c,W=ctx.W,H=500;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const nums=ctx.nums, rows=ctx.rows, pad=20; let pts;
+  if(nums.length>=2){
+    const xs=d3.scaleLinear().domain(d3.extent(rows,r=>+r[nums[0].name])).nice().range([pad,W-pad]);
+    const ys=d3.scaleLinear().domain(d3.extent(rows,r=>+r[nums[1].name])).nice().range([H-pad,pad]);
+    pts=rows.map(r=>[xs(+r[nums[0].name]),ys(+r[nums[1].name])]).filter(p=>!isNaN(p[0])&&!isNaN(p[1]));
+  } else {
+    const data=flatData(ctx), mxv=d3.max(data,x=>x.value)||1;
+    const xs=d3.scaleLinear().domain([0,Math.max(1,data.length-1)]).range([pad,W-pad]);
+    const ys=d3.scaleLinear().domain(d3.extent(data,d=>d.value)).nice().range([H-pad,pad]);
+    pts=[]; data.forEach((d,i)=>{ const k=Math.max(1,Math.round(d.value/(mxv/12))); for(let j=0;j<k;j++) pts.push([xs(i)+(Math.random()-.5)*20, ys(d.value)+(Math.random()-.5)*20]); });
+  }
+  if(pts.length<4) return renderConstellation(svg,ctx);
+  const dens=d3.contourDensity().x(d=>d[0]).y(d=>d[1]).size([W,H]).bandwidth(28).thresholds(12)(pts);
+  const maxV=d3.max(dens,d=>d.value)||1, path=d3.geoPath();
+  dens.forEach(band=>svg.append('path').attr('d',path(band)).attr('fill',mix(c.bg,c.accent,0.12+0.88*(band.value/maxV))).attr('stroke',mix(c.accent,c.ink,.2)).attr('stroke-width',.4).attr('stroke-opacity',.5));
+  pts.slice(0,400).forEach(p=>svg.append('circle').attr('cx',p[0]).attr('cy',p[1]).attr('r',1.5).attr('fill',c.ink).attr('opacity',.3));
+  return {n:pts.length};
+}
+function renderFlowField(svg,ctx){
+  const c=ctx.c,W=ctx.W,H=500;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  svg.append('rect').attr('width',W).attr('height',H).attr('rx',10).attr('fill',mix(c.bg,c.ink,.06));
+  const data=flatData(ctx), maxV=d3.max(data,d=>d.value)||1;
+  const attr=data.map((d,i)=>({x:(i+0.5)/Math.max(1,data.length)*W, y:H*(0.3+0.4*Math.random()), w:d.value/maxV}));
+  function angleAt(x,y){ let ax=0,ay=0; attr.forEach(a=>{ const dx=x-a.x,dy=y-a.y,d2=dx*dx+dy*dy+4000,dd=Math.sqrt(d2),f=a.w*60000/d2; ax+=-dy/dd*f; ay+=dx/dd*f; }); ax+=Math.cos(y*0.01)*8; ay+=Math.sin(x*0.01)*8; return Math.atan2(ay,ax); }
+  const P=140, parts=d3.range(P).map(()=>({x:Math.random()*W,y:Math.random()*H,life:Math.random()*100}));
+  const dots=svg.append('g').selectAll('circle').data(parts).enter().append('circle').attr('r',1.6).attr('opacity',0);
+  function step(){ parts.forEach(p=>{ const a=angleAt(p.x,p.y); p.x+=Math.cos(a)*1.4; p.y+=Math.sin(a)*1.4; p.life-=1; if(p.life<0||p.x<0||p.x>W||p.y<0||p.y>H){ p.x=Math.random()*W; p.y=Math.random()*H; p.life=60+Math.random()*80; } });
+    dots.attr('cx',p=>p.x).attr('cy',p=>p.y).attr('opacity',p=>Math.min(.7,p.life/80)).attr('fill',(p,i)=>i%5===0?c.ink:c.accent); window.__cvRaf=requestAnimationFrame(step); }
+  if(window.__cvRaf) cancelAnimationFrame(window.__cvRaf); step();
+  attr.forEach(a=>svg.append('circle').attr('cx',a.x).attr('cy',a.y).attr('r',3+a.w*5).attr('fill','none').attr('stroke',mix(c.accent,c.bg,.3)).attr('stroke-width',1).attr('opacity',.5));
+  return {n:P};
+}
+function renderHalo(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=540;
+  const data=flatData(ctx).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
+  if(!data.length) return renderRadial(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const cx=W/2,cy=H/2,maxR=Math.min(W,H)/2-30,r0=46,n=data.length,bandW=(maxR-r0)/n,maxV=d3.max(data,d=>d.value),col=palOf(c),arc=d3.arc().cornerRadius(3);
+  const g=svg.append('g').attr('transform',`translate(${cx},${cy})`);
+  data.forEach((d,i)=>{
+    const ri=maxR-(i+1)*bandW, ro=maxR-i*bandW-2;
+    g.append('path').attr('d',arc({innerRadius:ri,outerRadius:ro,startAngle:0,endAngle:2*Math.PI})).attr('fill',mix(c.ink,c.bg,.9));
+    g.append('path').attr('class','cv-mark').attr('d',arc({innerRadius:ri,outerRadius:ro,startAngle:0,endAngle:d.value/maxV*1.9*Math.PI})).attr('fill',col(i)).attr('data-label',d.label).attr('data-value',fmt(d.value));
+    g.append('text').attr('x',6).attr('y',-(ri+ro)/2).attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','11px').text(d.label.length>16?d.label.slice(0,15)+'…':d.label);
+  });
+  return {n:n};
+}
+
+function renderSmallMultiples(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
+  const {keys,rows}=seriesData(ctx); const multi=keys.length>=2;
+  const items=multi?rows:flatData(ctx).map(d=>({label:d.label,vals:[d.value]}));
+  if(!items.length) return renderRadial(svg,ctx);
+  const maxAll=multi?d3.max(rows,r=>d3.max(r.vals)):d3.max(items,d=>d.vals[0]);
+  const cols=Math.min(items.length,Math.ceil(Math.sqrt(items.length*1.3))), rowsN=Math.ceil(items.length/cols);
+  const cw=(W-20)/cols, ch=multi?120:96, H=rowsN*ch+20, col=palOf(c);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  items.forEach((it,i)=>{
+    const r=Math.floor(i/cols), cc=i%cols, gx=10+cc*cw, gy=10+r*ch, g=svg.append('g').attr('transform',`translate(${gx},${gy})`);
+    g.append('text').attr('x',4).attr('y',12).attr('fill',c.ink).attr('font-size','11.5px').attr('font-weight',600).text(it.label.length>14?it.label.slice(0,13)+'…':it.label);
+    const padT=22, plotW=cw-14, plotH=ch-padT-18;
+    if(multi){ const x=d3.scaleBand().domain(keys.map((k,j)=>j)).range([4,4+plotW]).padding(.18), y=d3.scaleLinear().domain([0,maxAll]).range([padT+plotH,padT]);
+      keys.forEach((k,j)=>{ const v=it.vals[j]; if(isNaN(v))return; g.append('rect').attr('class','cv-mark').attr('x',x(j)).attr('y',y(v)).attr('width',x.bandwidth()).attr('height',padT+plotH-y(v)).attr('fill',col(j)).attr('rx',2).attr('data-label',it.label+' · '+k).attr('data-value',fmt(v)); });
+    } else { const v=it.vals[0];
+      g.append('rect').attr('x',4).attr('y',padT+plotH-14).attr('width',plotW).attr('height',14).attr('rx',4).attr('fill',mix(c.ink,c.bg,.85));
+      g.append('rect').attr('class','cv-mark').attr('x',4).attr('y',padT+plotH-14).attr('width',plotW*(v/maxAll)).attr('height',14).attr('rx',4).attr('fill',col(i)).attr('data-label',it.label).attr('data-value',fmt(v));
+      g.append('text').attr('x',4).attr('y',padT+plotH-20).attr('fill',c.inkSoft).attr('font-size','13px').attr('font-weight',700).text(fmt(v)); }
+  });
+  return {n:items.length};
+}
+function renderRadialHeat(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=540;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const cx=W/2,cy=H/2,maxR=Math.min(W,H)/2-30,r0=40;
+  const sd=seriesData(ctx), multi=sd.keys.length>=2;
+  const rings=multi?sd.keys:['value'], cells=multi?sd.rows:flatData(ctx).map(d=>({label:d.label,vals:[d.value]}));
+  if(!cells.length) return renderRadial(svg,ctx);
+  const ns=cells.length,nr=rings.length, allVals=cells.flatMap(s=>s.vals).filter(v=>!isNaN(v)), ext=d3.extent(allVals);
+  const norm=v=>(ext[1]===ext[0])?0.5:(v-ext[0])/(ext[1]-ext[0]), seq=t=>mix(c.bg,c.accent,0.12+0.88*t);
+  const bandW=(maxR-r0)/nr, arc=d3.arc().padAngle(0.006), g=svg.append('g').attr('transform',`translate(${cx},${cy})`);
+  cells.forEach((s,si)=>{
+    const a0=si/ns*2*Math.PI, a1=(si+1)/ns*2*Math.PI;
+    rings.forEach((rk,ri)=>{ const v=s.vals[ri]; if(isNaN(v))return; const ir=r0+ri*bandW, or=r0+(ri+1)*bandW-1.5;
+      g.append('path').attr('class','cv-mark').attr('d',arc({innerRadius:ir,outerRadius:or,startAngle:a0,endAngle:a1})).attr('fill',seq(norm(v))).attr('data-label',s.label+(nr>1?' · '+rk:'')).attr('data-value',fmt(v)); });
+    const mid=(a0+a1)/2;
+    if(ns<=26) g.append('text').attr('x',Math.sin(mid)*(maxR+12)).attr('y',-Math.cos(mid)*(maxR+12)).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','10px').text(s.label.length>8?s.label.slice(0,7):s.label);
+  });
+  return {n:ns};
+}
+function renderSpiral(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=520;
+  const data=flatData(ctx);
+  if(!data.length) return renderRadial(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const cx=W/2,cy=H/2,n=data.length,turns=Math.max(2,Math.min(5,n/8)),thetaMax=turns*2*Math.PI,rMax=Math.min(W,H)/2-40,r0=30,maxV=d3.max(data,d=>d.value)||1,col=palOf(c);
+  const guide=[]; for(let t=0;t<=thetaMax;t+=0.15){ const r=r0+(rMax-r0)*(t/thetaMax); guide.push([cx+Math.sin(t)*r, cy-Math.cos(t)*r]); }
+  svg.append('path').attr('d',d3.line()(guide)).attr('fill','none').attr('stroke',mix(c.ink,c.bg,.8)).attr('stroke-width',1);
+  data.forEach((d,i)=>{ const t=(i/(n-1||1))*thetaMax, r=r0+(rMax-r0)*(t/thetaMax), x=cx+Math.sin(t)*r, y=cy-Math.cos(t)*r;
+    svg.append('circle').attr('class','cv-mark').attr('cx',x).attr('cy',y).attr('r',4+(d.value/maxV)*16).attr('fill',col(i)).attr('fill-opacity',.85).attr('data-label',d.label).attr('data-value',fmt(d.value)); });
+  return {n:n};
+}
+function renderVoronoi(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=500;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const nums=ctx.nums, rows=ctx.rows, pad=6; let pts, valOf, labOf;
+  if(nums.length>=2){
+    const xs=d3.scaleLinear().domain(d3.extent(rows,r=>+r[nums[0].name])).nice().range([pad,W-pad]);
+    const ys=d3.scaleLinear().domain(d3.extent(rows,r=>+r[nums[1].name])).nice().range([H-pad,pad]);
+    pts=rows.map(r=>[xs(+r[nums[0].name]),ys(+r[nums[1].name])]); valOf=i=>nums.length>=3?+rows[i][nums[2].name]:+rows[i][nums[0].name]; labOf=i=>_lab(rows[i],ctx.cat,i);
+  } else { const data=flatData(ctx);
+    pts=data.map((d,i)=>{ const a=i*2.399963, r=Math.sqrt(i/Math.max(1,data.length))*(Math.min(W,H)/2-20); return [W/2+Math.cos(a)*r, H/2+Math.sin(a)*r]; });
+    valOf=i=>data[i].value; labOf=i=>data[i].label; }
+  pts=pts.map(p=>[isNaN(p[0])?W/2:p[0], isNaN(p[1])?H/2:p[1]]);
+  if(pts.length<2) return renderPropCircles(svg,ctx);
+  const vor=d3.Delaunay.from(pts).voronoi([0,0,W,H]), vals=pts.map((p,i)=>valOf(i)), ext=d3.extent(vals);
+  const seq=v=>mix(c.bg,c.accent,ext[1]===ext[0]?.5:0.1+0.85*((v-ext[0])/(ext[1]-ext[0])));
+  pts.forEach((p,i)=>{ const cell=vor.renderCell(i); if(!cell)return; svg.append('path').attr('class','cv-mark').attr('d',cell).attr('fill',seq(valOf(i))).attr('stroke',mix(c.ink,c.bg,.7)).attr('stroke-width',1).attr('data-label',labOf(i)).attr('data-value',fmt(valOf(i))); });
+  pts.forEach(p=>svg.append('circle').attr('cx',p[0]).attr('cy',p[1]).attr('r',2).attr('fill',c.ink).attr('opacity',.5));
+  return {n:pts.length};
+}
+function renderIsoBar(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
+  const data=flatData(ctx).sort((a,b)=>b.value-a.value);
+  if(!data.length) return renderRadial(svg,ctx);
+  const n=data.length,maxV=d3.max(data,d=>d.value)||1,bw=Math.min(54,(W-80)/n*0.8),dx=bw*0.5,dy=bw*0.28,hMax=240,gap=(W-40)/n,baseY=hMax+dy*2+60,H=baseY+40,col=palOf(c);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const lighten=(h,t)=>mix(h,'#ffffff',t), darken=(h,t)=>mix(h,'#000000',t);
+  data.forEach((d,i)=>{
+    const h=(d.value/maxV)*hMax, cxp=30+gap*i+gap/2, by=baseY, top=by-h, base=col(i);
+    const topP=[[cxp,top-dy*2],[cxp+dx,top-dy],[cxp,top],[cxp-dx,top-dy]].map(p=>p.join(',')).join(' ');
+    const leftP=[[cxp-dx,top-dy],[cxp,top],[cxp,by],[cxp-dx,by-dy]].map(p=>p.join(',')).join(' ');
+    const rightP=[[cxp+dx,top-dy],[cxp,top],[cxp,by],[cxp+dx,by-dy]].map(p=>p.join(',')).join(' ');
+    svg.append('polygon').attr('points',leftP).attr('fill',darken(base,.18));
+    svg.append('polygon').attr('points',rightP).attr('fill',darken(base,.34));
+    svg.append('polygon').attr('class','cv-mark').attr('points',topP).attr('fill',lighten(base,.08)).attr('data-label',d.label).attr('data-value',fmt(d.value));
+    svg.append('text').attr('x',cxp).attr('y',by+dy+18).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11px').text(d.label.length>9?d.label.slice(0,8)+'…':d.label);
+    svg.append('text').attr('x',cxp).attr('y',top-dy*2-8).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(fmt(d.value));
+  });
+  return {n:n};
+}
+
+/* ===================================================================
    ORCHESTRATION
    =================================================================== */
 let LAST = null; // {data, type, insight}
@@ -940,7 +1534,18 @@ function buildContext(data, type){
   };
 }
 
-const RENDERERS = {radial:renderRadial, slope:renderSlope, waffle:renderWaffle, beeswarm:renderBeeswarm, connected:renderConnected, dotstrip:renderDotstrip, ridge:renderRidge};
+const RENDERERS = {
+  radial:renderRadial, slope:renderSlope, waffle:renderWaffle, beeswarm:renderBeeswarm, connected:renderConnected, dotstrip:renderDotstrip, ridge:renderRidge,
+  lollipop:renderLollipop, dumbbell:renderDumbbell, diverging:renderDiverging, bullet:renderBullet,
+  violin:renderViolin, treemap:renderTreemap, sunburst:renderSunburst, marimekko:renderMarimekko,
+  isotype:renderIsotype, pack:renderPack, propcircles:renderPropCircles, bump:renderBump,
+  stream:renderStream, horizon:renderHorizon, calendar:renderCalendar, race:renderRace,
+  parallel:renderParallel, constellation:renderConstellation, contour:renderContour,
+  flowfield:renderFlowField, halo:renderHalo, smallmult:renderSmallMultiples,
+  radialheat:renderRadialHeat, spiral:renderSpiral, voronoi:renderVoronoi, isobar:renderIsoBar
+};
+// dropdown values that reuse another renderer
+const TYPE_ALIAS = { dotplot:'dotstrip', strip:'beeswarm', dotmatrix:'waffle', unit:'isotype', sankey:'parallel', chord:'halo', network:'constellation', alluvial:'parallel' };
 
 function validateFor(type, data){
   const nums = data.columns.filter(c=>c.type==='number');
@@ -970,19 +1575,23 @@ function generate(){
   }
 
   let choice = $('#charttype').value;
-  let type = choice === 'auto' ? chooseChart(data, insight) : choice;
-  // validate manual choice; fall back to auto if impossible
-  if (choice !== 'auto' && validateFor(type, data)){
-    type = chooseChart(data, insight);
-  } else if (choice === 'auto') {
-    // ensure auto pick is renderable
+  let labelKey, type;
+  if (choice === 'auto'){
+    type = chooseChart(data, insight); labelKey = type;
     if (validateFor(type, data)){
-      const order = ['radial','dotstrip','beeswarm','ridge','slope','connected','waffle'];
-      type = order.find(t=>!validateFor(t,data)) || 'beeswarm';
+      const order = ['treemap','radial','dotstrip','beeswarm','ridge','slope','connected','waffle'];
+      type = order.find(t=>!validateFor(t,data)) || 'beeswarm'; labelKey = type;
     }
+  } else {
+    labelKey = choice;
+    type = TYPE_ALIAS[choice] || choice;
+    if (validateFor(type, data)){ type = chooseChart(data, insight); labelKey = type; }
   }
 
   if (window.__cvHideTip) window.__cvHideTip();
+  // stop any running animation from a previous render (race / flow field)
+  if (window.__cvTimer){ clearInterval(window.__cvTimer); window.__cvTimer=null; }
+  if (window.__cvRaf){ cancelAnimationFrame(window.__cvRaf); window.__cvRaf=null; }
   const ctx = buildContext(data, type);
   const svg = d3.select('#chart').html('').append('svg');
   let meta;
@@ -1016,7 +1625,7 @@ function generate(){
   const catName = ctx.cat || '';
   $('#footmeta').textContent = catName ? `${numName} by ${catName}` : numName;
 
-  det.innerHTML = `Form: <b>${TYPE_NAMES[type]}</b>${choice==='auto'?' · auto-selected':''}`;
+  det.innerHTML = `Form: <b>${TYPE_NAMES[labelKey]||labelKey}</b>${choice==='auto'?' · auto-selected':''}`;
   LAST = {data, type, insight, numName, catName};
   const navExp = $('#navExport'); if (navExp) navExp.disabled = false;
 }
