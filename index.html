@@ -64,7 +64,7 @@
   }
   .splash-strap{
     font-family:'Amatic SC','Archivo',-apple-system,BlinkMacSystemFont,sans-serif;font-weight:700;font-style:italic;color:#fff;
-    font-size:clamp(32px,6.5vw,82px);letter-spacing:2px;margin:6px 0 0;text-shadow:0 1px 12px rgba(0,0,0,.5);
+    font-size:clamp(24px,4.8vw,58px);letter-spacing:2px;margin:10px 0 0;opacity:.96;text-shadow:0 1px 12px rgba(0,0,0,.5);
   }
   .splash-by{
     font-family:'Fraunces',Georgia,'Times New Roman',serif;font-style:italic;font-weight:400;color:#fff;
@@ -239,6 +239,54 @@
   .xbtn.primary:hover{background:#b0533d;color:#fff}
   .xbtn svg{width:14px;height:14px}
 
+  /* ---- 5-option carousel ---- */
+  .carousel{width:100%}
+  .car-head{display:flex;align-items:baseline;gap:12px;margin:0 2px 12px;flex-wrap:wrap}
+  .car-title{font-family:"Fraunces",Georgia,serif;font-size:18px;font-weight:500;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+  .car-hint{font-size:12px;color:rgba(255,255,255,.84);text-shadow:0 1px 6px rgba(0,0,0,.55)}
+  .car-stage{position:relative;display:flex;align-items:center}
+  .car-viewport{overflow:hidden;width:100%;padding:4px 2px 10px}
+  .car-track{display:flex;gap:18px;align-items:stretch;transition:transform .35s cubic-bezier(.4,.6,.2,1);will-change:transform}
+  .cv-card{flex:0 0 clamp(270px,78%,400px);
+    background:var(--card-bg,#fff);color:var(--card-ink,#1a1a1a);border-radius:16px;
+    border:1px solid var(--card-line,rgba(0,0,0,.07));box-shadow:0 30px 70px -42px rgba(0,0,0,.55);
+    padding:16px 16px 14px;display:flex;flex-direction:column;min-height:300px;
+    transition:transform .18s ease, box-shadow .18s ease}
+  .cv-card:hover{transform:translateY(-3px);box-shadow:0 42px 92px -44px rgba(0,0,0,.62)}
+  .card-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--card-accent,var(--accent))}
+  .card-note{font-size:11px;color:var(--card-soft,#8a8a8a);margin:3px 0 0}
+  .card-chart{flex:1;display:flex;align-items:center;justify-content:center;margin:10px 0 12px;min-height:200px;width:100%}
+  .card-chart svg{width:100%;height:auto;display:block;overflow:visible}
+  .card-select{margin-top:auto;align-self:stretch;border:1px solid var(--card-accent,var(--accent));background:transparent;
+    color:var(--card-accent,var(--accent));font-family:inherit;font-size:12.5px;font-weight:600;border-radius:9px;
+    padding:9px 14px;cursor:pointer;transition:.15s}
+  .card-select:hover{background:var(--card-accent,var(--accent));color:#fff}
+  .skel{border-radius:8px;background:linear-gradient(100deg,rgba(0,0,0,.05) 30%,rgba(0,0,0,.11) 50%,rgba(0,0,0,.05) 70%);
+    background-size:200% 100%;animation:skelPulse 1.2s ease-in-out infinite}
+  @keyframes skelPulse{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .skel-label{width:46%;height:11px;margin:2px 0 14px}
+  .skel-chart{width:100%;height:210px;margin:6px 0 14px}
+  .skel-btn{width:100%;height:36px;margin-top:auto}
+  .card-error{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    color:#9a3b2e;font-size:12.5px;text-align:center;padding:20px;line-height:1.4}
+  .card-error button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:8px;
+    padding:6px 12px;font:inherit;font-size:12px;cursor:pointer}
+  .car-arrow{flex:0 0 auto;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.42);
+    background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    color:#fff;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 24px -8px rgba(0,0,0,.5);transition:.15s;z-index:2}
+  .car-arrow:hover{background:rgba(255,255,255,.34)}
+  .car-arrow:disabled{opacity:.28;cursor:default}
+  .car-arrow.prev{margin-right:8px}
+  .car-arrow.next{margin-left:8px}
+  .car-dots{display:flex;gap:7px;justify-content:center;margin-top:8px}
+  .car-dots .dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.45);border:none;padding:0;cursor:pointer;transition:.15s}
+  .car-dots .dot.on{background:#fff;transform:scale(1.25)}
+  .back-options{display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;
+    font-family:inherit;font-size:12.5px;font-weight:600;color:var(--accent);padding:0;margin:0 0 14px}
+  .back-options:hover{text-decoration:underline}
+  @media(max-width:560px){ .cv-card{flex-basis:84%} }
+
   /* ---- shared figure animation + interaction (also used in export) ---- */
   /*FIGURE_CSS_START*/
   @keyframes cvIn{to{opacity:1}}
@@ -260,7 +308,7 @@
   <div class="splash" id="splash">
     <div class="splash-inner">
       <div class="splash-title">Canopy</div>
-      <div class="splash-strap">Data, shaped into something worth looking at.</div>
+      <div class="splash-strap">Data worth looking at.</div>
       <div class="splash-by">by Justin Thorpe</div>
     </div>
   </div>
@@ -410,7 +458,22 @@
           <p>Paste your numbers, name the insight you want to land, and Canopy renders an editorial-quality visualisation — never a default chart.</p>
         </div>
 
+        <!-- 5-option carousel (shown after Generate) -->
+        <section class="carousel" id="carousel" hidden aria-label="Chart options">
+          <div class="car-head">
+            <span class="car-title" id="carTitle">Five ways to show this</span>
+            <span class="car-hint">Pick one to refine &amp; export</span>
+          </div>
+          <div class="car-stage">
+            <button class="car-arrow prev" id="carPrev" type="button" aria-label="Previous options">&#8249;</button>
+            <div class="car-viewport" id="carViewport"><div class="car-track" id="carTrack"></div></div>
+            <button class="car-arrow next" id="carNext" type="button" aria-label="More options">&#8250;</button>
+          </div>
+          <div class="car-dots" id="carDots"></div>
+        </section>
+
         <figure class="cv-figure" id="figure" hidden>
+          <button class="back-options" id="backOptions" type="button">&#8249; All options</button>
           <p class="cv-kicker" id="kicker" hidden></p>
           <figcaption class="cv-head" id="headline"></figcaption>
           <div id="chart"></div>
@@ -1312,6 +1375,7 @@ function renderRace(svg,ctx){
     all.select('text.val').attr('y',barH/2).attr('fill',c.inkSoft).transition().duration(700).attr('x',d=>x(d.value)+8).tween('t',function(d){const self=d3.select(this);return ()=>self.text(fmt(d.value));});
     sel.exit().remove(); periodText.text(keys[pi]);
   }
+  if(ctx.still){ draw(keys.length-1); return {n:ents.length}; }
   draw(0);
   if(window.__cvTimer) clearInterval(window.__cvTimer);
   window.__cvTimer=setInterval(()=>{ frame=(frame+1)%keys.length; draw(frame); },1500);
@@ -1399,9 +1463,10 @@ function renderFlowField(svg,ctx){
   function angleAt(x,y){ let ax=0,ay=0; attr.forEach(a=>{ const dx=x-a.x,dy=y-a.y,d2=dx*dx+dy*dy+4000,dd=Math.sqrt(d2),f=a.w*60000/d2; ax+=-dy/dd*f; ay+=dx/dd*f; }); ax+=Math.cos(y*0.01)*8; ay+=Math.sin(x*0.01)*8; return Math.atan2(ay,ax); }
   const P=140, parts=d3.range(P).map(()=>({x:Math.random()*W,y:Math.random()*H,life:Math.random()*100}));
   const dots=svg.append('g').selectAll('circle').data(parts).enter().append('circle').attr('r',1.6).attr('opacity',0);
-  function step(){ parts.forEach(p=>{ const a=angleAt(p.x,p.y); p.x+=Math.cos(a)*1.4; p.y+=Math.sin(a)*1.4; p.life-=1; if(p.life<0||p.x<0||p.x>W||p.y<0||p.y>H){ p.x=Math.random()*W; p.y=Math.random()*H; p.life=60+Math.random()*80; } });
-    dots.attr('cx',p=>p.x).attr('cy',p=>p.y).attr('opacity',p=>Math.min(.7,p.life/80)).attr('fill',(p,i)=>i%5===0?c.ink:c.accent); window.__cvRaf=requestAnimationFrame(step); }
-  if(window.__cvRaf) cancelAnimationFrame(window.__cvRaf); step();
+  function advance(){ parts.forEach(p=>{ const a=angleAt(p.x,p.y); p.x+=Math.cos(a)*1.4; p.y+=Math.sin(a)*1.4; p.life-=1; if(p.life<0||p.x<0||p.x>W||p.y<0||p.y>H){ p.x=Math.random()*W; p.y=Math.random()*H; p.life=60+Math.random()*80; } }); }
+  function paint(){ dots.attr('cx',p=>p.x).attr('cy',p=>p.y).attr('opacity',p=>Math.min(.7,p.life/80)).attr('fill',(p,i)=>i%5===0?c.ink:c.accent); }
+  if(ctx.still){ for(let i=0;i<90;i++) advance(); paint(); }
+  else { if(window.__cvRaf) cancelAnimationFrame(window.__cvRaf); (function step(){ advance(); paint(); window.__cvRaf=requestAnimationFrame(step); })(); }
   attr.forEach(a=>svg.append('circle').attr('cx',a.x).attr('cy',a.y).attr('r',3+a.w*5).attr('fill','none').attr('stroke',mix(c.accent,c.bg,.3)).attr('stroke-width',1).attr('opacity',.5));
   return {n:P};
 }
@@ -1519,17 +1584,19 @@ function renderIsoBar(svg,ctx){
    =================================================================== */
 let LAST = null; // {data, type, insight}
 
-function buildContext(data, type){
-  const c = currentColors();
+function buildContext(data, type, opts){
+  opts = opts || {};
+  const c = opts.c || currentColors();
   const cats = data.columns.filter(c=>c.type==='category');
   const dates = data.columns.filter(c=>c.type==='date');
   const nums = data.columns.filter(c=>c.type==='number');
   const labels = cats.length ? cats : dates;
-  const W = Math.max(560, Math.min($('#chart').clientWidth || 760, 820));
+  const W = opts.W ? Math.max(300, Math.min(opts.W, 820))
+                   : Math.max(560, Math.min($('#chart').clientWidth || 760, 820));
   const numVals = data.rows.flatMap(r => nums.map(nc => +r[nc.name])).filter(v=>!isNaN(v));
   const fmt = makeFmt(numVals);
   return {
-    rows: data.rows, c, W, fmt,
+    rows: data.rows, c, W, fmt, still: !!opts.still,
     cat: labels.length ? labels[0].name : null,
     num: nums.length ? nums[0].name : null,
     nums: nums
@@ -1561,6 +1628,9 @@ function validateFor(type, data){
   return null;
 }
 
+// state for the 5-option carousel
+let CARDS = [], GEN = null;
+
 function generate(){
   syncColorUI();
   const raw = $('#data').value;
@@ -1576,60 +1646,227 @@ function generate(){
     return;
   }
 
-  let choice = $('#charttype').value;
-  let labelKey, type;
+  stopAnims();
+  GEN = { data, insight };
+  const choice = $('#charttype').value;
+
+  // Decide the five options.
+  //  • Auto  -> five genuinely different chart FORMS suited to this data shape
+  //  • a specific type -> five colour/treatment VARIATIONS of that one form
+  let recipes;
   if (choice === 'auto'){
-    type = chooseChart(data, insight); labelKey = type;
-    if (validateFor(type, data)){
-      const order = ['treemap','radial','dotstrip','beeswarm','ridge','slope','connected','waffle'];
-      type = order.find(t=>!validateFor(t,data)) || 'beeswarm'; labelKey = type;
-    }
+    recipes = pickAutoTypes(data, insight).map(t => ({
+      type:t, label: TYPE_NAMES[t]||t, note:'Auto-matched form', c: currentColors()
+    }));
   } else {
-    labelKey = choice;
-    type = TYPE_ALIAS[choice] || choice;
-    if (validateFor(type, data)){ type = chooseChart(data, insight); labelKey = type; }
+    const want = TYPE_ALIAS[choice] || choice;
+    const fits = !validateFor(want, data);
+    const base = fits ? want : chooseChart(data, insight);
+    const tail = fits ? '' : ' · auto-fitted';
+    recipes = paletteVariants().map((v,i) => ({
+      type: base, label:'Variation '+(i+1), note: v.note + tail, c: v.c, labelKey: fits ? choice : base
+    }));
   }
+  while (recipes.length && recipes.length < 5) recipes.push(recipes[recipes.length-1]);
+  recipes = recipes.slice(0,5);
+  CARDS = recipes;
 
-  if (window.__cvHideTip) window.__cvHideTip();
-  // stop any running animation from a previous render (race / flow field)
-  if (window.__cvTimer){ clearInterval(window.__cvTimer); window.__cvTimer=null; }
-  if (window.__cvRaf){ cancelAnimationFrame(window.__cvRaf); window.__cvRaf=null; }
-  const ctx = buildContext(data, type);
-  const svg = d3.select('#chart').html('').append('svg');
-  let meta;
-  try {
-    meta = RENDERERS[type](svg, ctx);
-  } catch(e){
-    console.error(e);
-    det.innerHTML = '<span class="err">Could not render this combination — try a different chart form.</span>';
-    return;
-  }
-
-  // headline + chrome
+  // switch the stage into carousel mode
   $('#placeholder').hidden = true;
-  $('#figure').hidden = false;
-  $('#exportBar').hidden = false;
-  // the output card adopts the active palette so dark + light palettes both stay legible
-  (function(){
-    const fc = ctx.c, fig = $('#figure');
-    fig.style.background = fc.bg;
-    fig.style.color = fc.ink;
-    fig.style.setProperty('--ink', fc.ink);
-    fig.style.setProperty('--ink-soft', fc.inkSoft);
-    fig.style.setProperty('--accent', fc.accent);
-    fig.style.borderColor = mix(fc.ink, fc.bg, 0.86);
-  })();
-  const kicker = $('#kicker');
-  if (insight){ $('#headline').textContent = insight; kicker.hidden = true; }
-  else { $('#headline').textContent = humanTitle(data, ctx); kicker.hidden = true; }
+  $('#figure').hidden = true;
+  $('#exportBar').hidden = true;
+  $('#backOptions').hidden = true;
+  $('#carousel').hidden = false;
+  $('#carTitle').textContent = (choice==='auto')
+    ? 'Five ways to show this'
+    : 'Five takes on ' + (TYPE_NAMES[choice]||choice);
+  det.innerHTML = '<b>5 options ready</b> · pick one to refine &amp; export';
 
-  const numName = (data.columns.find(c=>c.type==='number')||{}).name || '';
+  // 1) lay down five skeleton slots immediately
+  const track = $('#carTrack'); track.innerHTML = '';
+  const cardEls = recipes.map((r,i) => {
+    const card = document.createElement('div');
+    card.className = 'cv-card is-loading'; card.dataset.idx = i;
+    card.innerHTML = '<div class="skel skel-label"></div><div class="skel skel-chart"></div><div class="skel skel-btn"></div>';
+    track.appendChild(card);
+    return card;
+  });
+  buildDots(5);
+  carIdx = 0;
+  setTimeout(applyCar, 0);
+
+  // 2) populate each card independently (staggered) — one failure never breaks the others
+  recipes.forEach((r,i) => {
+    setTimeout(() => {
+      try { renderCardInto(cardEls[i], data, insight, r, i); }
+      catch(e){ showCardError(cardEls[i], data, insight, r, i, e); }
+    }, 60 + i*110);
+  });
+
+  const navExp = $('#navExport'); if (navExp) navExp.disabled = true;
+}
+
+function renderCardInto(card, data, insight, recipe, idx){
+  const c = recipe.c;
+  card.classList.remove('is-loading');
+  card.style.setProperty('--card-bg', c.bg);
+  card.style.setProperty('--card-ink', c.ink);
+  card.style.setProperty('--card-accent', c.accent);
+  card.style.setProperty('--card-soft', c.inkSoft);
+  card.style.setProperty('--card-line', mix(c.ink, c.bg, 0.86));
+  card.innerHTML =
+    '<div class="card-label">' + escapeHTML(recipe.label) + '</div>' +
+    (recipe.note ? '<div class="card-note">' + escapeHTML(recipe.note) + '</div>' : '') +
+    '<div class="card-chart"></div>' +
+    '<button class="card-select" type="button">Select</button>';
+  const host = card.querySelector('.card-chart');
+  // scope css-var-driven svg classes (.cv-axis etc.) to this card's palette
+  host.style.setProperty('--ink', c.ink);
+  host.style.setProperty('--ink-soft', c.inkSoft);
+  host.style.setProperty('--accent', c.accent);
+  const W = Math.max(300, Math.min(host.clientWidth || 340, 460));
+  const ctx = buildContext(data, recipe.type, { c, W, still:true });
+  const svg = d3.select(host).append('svg');
+  RENDERERS[recipe.type](svg, ctx);
+  card.querySelector('.card-select').addEventListener('click', () => focusOption(idx));
+}
+
+function showCardError(card, data, insight, recipe, idx, err){
+  if (!card) return;
+  console.error('option '+idx+' failed', err);
+  card.classList.remove('is-loading');
+  card.innerHTML =
+    '<div class="card-label">' + escapeHTML(recipe.label) + '</div>' +
+    '<div class="card-error"><span>This form didn’t fit the data.</span>' +
+    '<button type="button">Try again</button></div>';
+  card.querySelector('button').addEventListener('click', () => {
+    card.classList.add('is-loading');
+    card.innerHTML = '<div class="skel skel-label"></div><div class="skel skel-chart"></div><div class="skel skel-btn"></div>';
+    try { renderCardInto(card, data, insight, recipe, idx); }
+    catch(e){ showCardError(card, data, insight, recipe, idx, e); }
+  });
+}
+
+// bring a chosen option into the full-width focused view + activate export
+function focusOption(idx){
+  const r = CARDS[idx]; if (!r || !GEN) return;
+  stopAnims();
+  const data = GEN.data, insight = GEN.insight, c = r.c;
+  const ctx = buildContext(data, r.type, { c, still:false });
+  const svg = d3.select('#chart').html('').append('svg');
+  try { RENDERERS[r.type](svg, ctx); }
+  catch(e){ console.error(e); $('#detected').innerHTML = '<span class="err">Could not render this option.</span>'; return; }
+
+  const fig = $('#figure');
+  fig.style.background = c.bg; fig.style.color = c.ink;
+  fig.style.setProperty('--ink', c.ink);
+  fig.style.setProperty('--ink-soft', c.inkSoft);
+  fig.style.setProperty('--accent', c.accent);
+  fig.style.borderColor = mix(c.ink, c.bg, 0.86);
+
+  $('#kicker').hidden = true;
+  $('#headline').textContent = insight || humanTitle(data, ctx);
+  const numName = (data.columns.find(col=>col.type==='number')||{}).name || '';
   const catName = ctx.cat || '';
   $('#footmeta').textContent = catName ? `${numName} by ${catName}` : numName;
 
-  det.innerHTML = `Form: <b>${TYPE_NAMES[labelKey]||labelKey}</b>${choice==='auto'?' · auto-selected':''}`;
-  LAST = {data, type, insight, numName, catName};
+  $('#carousel').hidden = true;
+  fig.hidden = false;
+  $('#exportBar').hidden = false;
+  $('#backOptions').hidden = false;
+  const labelKey = r.labelKey || r.type;
+  $('#detected').innerHTML = `Form: <b>${TYPE_NAMES[labelKey]||r.label}</b>`;
+  LAST = { data, type:r.type, insight, numName, catName, colors:c };
   const navExp = $('#navExport'); if (navExp) navExp.disabled = false;
+  fig.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function backToOptions(){
+  stopAnims();
+  $('#figure').hidden = true;
+  $('#exportBar').hidden = true;
+  $('#backOptions').hidden = true;
+  $('#carousel').hidden = false;
+  $('#detected').innerHTML = '<b>5 options ready</b> · pick one to refine &amp; export';
+  setTimeout(applyCar, 0);
+}
+
+function stopAnims(){
+  if (window.__cvHideTip) window.__cvHideTip();
+  if (window.__cvTimer){ clearInterval(window.__cvTimer); window.__cvTimer = null; }
+  if (window.__cvRaf){ cancelAnimationFrame(window.__cvRaf); window.__cvRaf = null; }
+}
+function escapeHTML(s){ return String(s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+// build a full colours object (matches currentColors()'s derived fields)
+function mkColors(bg, ink, accent){
+  return { bg, ink, accent, accent2:mix(accent,bg,0.5), inkSoft:mix(ink,bg,0.5), line:mix(ink,bg,0.86), grid:mix(ink,bg,0.9) };
+}
+// five colour treatments of the live palette, for "variations of one type"
+function paletteVariants(){
+  const b = currentColors();
+  const rot = (hex,deg)=>{ const h=d3.hsl(hex); if(isNaN(h.h)) h.h=20; h.h=(h.h+deg+360)%360; h.s=Math.max(0.45,h.s); return h.formatHex(); };
+  const dark = d3.hsl(b.bg).l < 0.5;
+  const invBg  = dark ? '#F4F1EA' : mix(b.ink, '#000000', 0.12);
+  const invInk = dark ? '#1A1A1A' : (d3.hsl(b.bg).l > 0.85 ? b.bg : '#F4F1EA');
+  return [
+    { c: b,                                          note:'House palette' },
+    { c: mkColors(b.bg, b.ink, b.ink),               note:'Monochrome ink' },
+    { c: mkColors(b.bg, b.ink, rot(b.accent, 150)),  note:'Shifted accent' },
+    { c: mkColors(b.bg, b.ink, rot(b.accent, -45)),  note:'Alternate accent' },
+    { c: mkColors(invBg, invInk, b.accent),          note:'Inverted ground' }
+  ];
+}
+// five genuinely different forms appropriate to the data shape, primary pick first
+function pickAutoTypes(data, insight){
+  const C = data.columns;
+  const nums   = C.filter(c=>c.type==='number').length;
+  const labels = C.filter(c=>c.type==='category'||c.type==='date').length;
+  let pool;
+  if      (nums>=3 && labels>=1)  pool=['parallel','smallmult','bump','radial','dotstrip','slope','constellation','dumbbell','treemap'];
+  else if (nums>=2 && labels>=1)  pool=['slope','dumbbell','connected','bump','dotstrip','radial','smallmult','diverging','lollipop'];
+  else if (nums>=2 && labels===0) pool=['connected','constellation','contour','voronoi','beeswarm','spiral'];
+  else if (nums===1 && labels>=1) pool=['radial','treemap','dotstrip','lollipop','waffle','isotype','pack','propcircles','halo','spiral','radialheat','diverging','beeswarm'];
+  else                            pool=['beeswarm','violin','constellation','spiral','radialheat','contour'];
+  const primary = chooseChart(data, insight);
+  const ordered = [primary, ...pool.filter(t=>t!==primary)];
+  const out=[], seen=new Set();
+  for (const t of ordered){
+    if (seen.has(t) || !RENDERERS[t]) continue;
+    if (validateFor(t, data)) continue;
+    seen.add(t); out.push(t);
+    if (out.length>=5) break;
+  }
+  for (const t of ['dotstrip','beeswarm','radial','treemap','halo','spiral']){
+    if (out.length>=5) break;
+    if (seen.has(t) || !RENDERERS[t] || validateFor(t,data)) continue;
+    seen.add(t); out.push(t);
+  }
+  return out.slice(0,5);
+}
+
+/* ---------- carousel navigation (transform-based track, deterministic) ---------- */
+let carIdx = 0;
+function cardStep(){ const card = $('#carTrack').querySelector('.cv-card'); return card ? card.getBoundingClientRect().width + 18 : 360; }
+function maxShift(){ const tr=$('#carTrack'), vp=$('#carViewport'); return Math.max(0, tr.scrollWidth - vp.clientWidth); }
+function applyCar(){
+  const n = $('#carTrack').children.length; if (!n) return;
+  carIdx = Math.max(0, Math.min(carIdx, n-1));
+  const shift = Math.min(carIdx*cardStep(), maxShift());
+  $('#carTrack').style.transform = 'translateX(' + (-shift) + 'px)';
+  $('#carPrev').disabled = shift <= 1;
+  $('#carNext').disabled = shift >= maxShift() - 1;
+  $('#carDots').querySelectorAll('.dot').forEach((d,i)=> d.classList.toggle('on', i===carIdx));
+}
+function goToCard(i){ carIdx = i; applyCar(); }
+function buildDots(n){
+  const dots = $('#carDots'); dots.innerHTML='';
+  for (let i=0;i<n;i++){
+    const b = document.createElement('button');
+    b.className = 'dot' + (i===0?' on':''); b.type='button';
+    b.addEventListener('click', () => goToCard(i));
+    dots.appendChild(b);
+  }
 }
 
 function humanTitle(data, ctx){
@@ -1652,7 +1889,7 @@ document.addEventListener('mouseout',hide);window.__cvHideTip=hide;})();`;
 
 function buildExportHTML(){
   if (!LAST) return '';
-  const c = currentColors();
+  const c = LAST.colors || currentColors();
   const svgEl = document.querySelector('#chart svg').cloneNode(true);
   const vb = svgEl.getAttribute('viewBox').split(' ');
   svgEl.setAttribute('width', vb[2]); svgEl.setAttribute('height', vb[3]);
@@ -1695,7 +1932,7 @@ function buildSVGString(){
   if (!LAST) return '';
   const src = document.querySelector('#chart svg');
   if (!src) return '';
-  const c = currentColors();
+  const c = LAST.colors || currentColors();
   const svgEl = src.cloneNode(true);
   const vb = (svgEl.getAttribute('viewBox')||'0 0 860 580').split(/\s+/);
   const W = +vb[2], H = +vb[3];
@@ -1723,16 +1960,46 @@ function buildSVGString(){
 
 /* ---------- examples (cycle through several on each click) ---------- */
 const EXAMPLES = [
-  { data:`Country, Whale catches\nNorway, 660\nJapan, 520\nIceland, 184\nDenmark, 158\nRussia, 125\nUSA, 49\nSouth Korea, 16\nCanada, 2`,
-    insight:`A handful of nations drive the overwhelming majority of whale catches.` },
-  { data:`Platform, 2014, 2024\nStreaming, 12, 71\nCable TV, 64, 28\nBroadcast, 19, 14\nCinema, 9, 6`,
-    insight:`Streaming overtook cable as audiences shifted between 2014 and 2024.` },
-  { data:`Channel, Share\nPaid search, 31\nSocial, 24\nEmail, 17\nReferral, 13\nDirect, 9\nDisplay, 6`,
-    insight:`Where every marketing dollar goes — paid search takes the largest share.` },
-  { data:`Startup, Valuation\nAtlas, 1.2\nBloom, 0.8\nCedar, 1.1\nDelta, 0.6\nEcho, 2.4\nFable, 0.9\nGrove, 1.5\nHalo, 0.7\nIris, 1.0\nJoule, 3.8\nKite, 0.5\nLumen, 1.3\nMesa, 0.9\nNova, 1.1\nOrbit, 0.6\nPine, 2.0\nQuill, 0.8\nRune, 1.4`,
-    insight:`Valuations cluster at the low end, with a few breakout outliers.` }
+  { data:`Retailer, 2019, 2021, 2024\nTesco, 27.3, 27.1, 27.6\nSainsbury's, 15.3, 15.0, 15.1\nAsda, 15.4, 14.1, 13.4\nMorrisons, 10.4, 9.8, 8.6\nAldi, 7.9, 8.6, 10.2\nLidl, 5.9, 6.3, 7.8`,
+    insight:`Aldi and Lidl are steadily eating into the big four's grocery share.` },
+  { data:`Sector, Share of emissions\nTransport, 29\nEnergy supply, 21\nBusiness, 18\nResidential, 16\nAgriculture, 11\nWaste, 5`,
+    insight:`Transport is now the single largest source of UK carbon emissions.` },
+  { data:`Region, Median salary £k, Cost of living index\nLondon, 44, 132\nSouth East, 37, 112\nEast, 34, 104\nScotland, 33, 96\nNorth West, 31, 92\nWales, 29, 90\nNorth East, 28, 88`,
+    insight:`London's salary premium is largely swallowed by its cost of living.` },
+  { data:`Quarter, Investment £bn\nQ1 2022, 4.1\nQ2 2022, 3.6\nQ3 2022, 2.4\nQ4 2022, 1.9\nQ1 2023, 1.5\nQ2 2023, 1.7\nQ3 2023, 2.0\nQ4 2023, 2.3\nQ1 2024, 2.8`,
+    insight:`UK fintech funding bottomed out in early 2023 and is climbing back.` },
+  { data:`Bank, Satisfaction\nFirst Direct, 88\nMonzo, 86\nStarling, 84\nNationwide, 79\nCo-op, 77\nSantander, 72\nLloyds, 71\nNatWest, 70\nHSBC, 66\nTSB, 64`,
+    insight:`Digital challengers are pulling clear of the high-street banks on satisfaction.` },
+  { data:`Sector, AI adoption %\nTechnology, 48\nFinance, 41\nMedia, 33\nProfessional services, 29\nRetail, 22\nManufacturing, 18\nHealthcare, 15\nConstruction, 9`,
+    insight:`AI adoption is racing ahead in tech and finance while construction lags.` },
+  { data:`Specialty, Median wait (weeks)\nOrthopaedics, 21\nENT, 18\nOphthalmology, 16\nGynaecology, 15\nGeneral surgery, 13\nCardiology, 11\nDermatology, 9`,
+    insight:`Orthopaedic patients wait more than twice as long as dermatology patients.` },
+  { data:`Country, Wind, Solar, Hydro\nUK, 28, 5, 2\nGermany, 24, 11, 4\nSpain, 23, 16, 12\nNorway, 7, 1, 88\nFrance, 8, 4, 11\nItaly, 7, 10, 16`,
+    insight:`Every country leans on a different renewable — Norway on hydro, Spain on solar.` },
+  { data:`Platform, Age 16-24, Age 25-44, Age 45-64\nTikTok, 71, 38, 12\nInstagram, 76, 61, 29\nFacebook, 41, 67, 72\nYouTube, 88, 81, 64\nX, 34, 29, 18`,
+    insight:`Facebook skews older while TikTok's reach collapses after 25.` },
+  { data:`City, 2014, 2024\nManchester, 155, 248\nBristol, 210, 340\nBirmingham, 148, 232\nLondon, 458, 530\nGlasgow, 118, 185\nLeeds, 158, 256`,
+    insight:`House prices in Manchester and Bristol have grown fastest over the decade.` },
+  { data:`Component, Contribution to CPI\nFood, 1.9\nHousing & energy, 1.4\nTransport, 0.8\nRecreation, 0.6\nRestaurants, 0.5\nClothing, 0.2`,
+    insight:`Food is the biggest single driver of the headline inflation rate.` },
+  { data:`Country, Cups per person per day\nFinland, 3.8\nSweden, 3.2\nNetherlands, 2.9\nNorway, 2.7\nItaly, 2.4\nGermany, 2.1\nUSA, 1.9\nUK, 1.6`,
+    insight:`Nordic countries drink far more coffee per head than anyone else.` },
+  { data:`Employee, Tenure (years)\nA, 0.5\nB, 1.2\nC, 1.8\nD, 2.1\nE, 2.4\nF, 2.9\nG, 3.3\nH, 3.6\nI, 4.0\nJ, 4.4\nK, 5.1\nL, 6.2\nM, 7.5\nN, 9.1\nO, 11.4\nP, 0.8\nQ, 1.5\nR, 2.6`,
+    insight:`Most of the team is fairly new, with a long tail of veterans.` },
+  { data:`Year, EV sales 000s, Chargepoints 000s\n2019, 38, 17\n2020, 108, 22\n2021, 190, 29\n2022, 267, 37\n2023, 315, 53\n2024, 382, 73`,
+    insight:`Charging infrastructure is struggling to keep pace with EV sales.` },
+  { data:`Funding stage, Companies still active %\nPre-seed, 100\nSeed, 60\nSeries A, 38\nSeries B, 23\nSeries C, 14\nExit, 8`,
+    insight:`Barely one in twelve pre-seed startups makes it through to an exit.` }
 ];
-let exIdx = 0;
+// Random order, no example repeats until all 15 have been shown.
+let exQueue = [];
+function nextExample(){
+  if (!exQueue.length){
+    exQueue = d3.shuffle(d3.range(EXAMPLES.length));
+    if (window.__lastEx!=null && exQueue[0]===window.__lastEx && exQueue.length>1) exQueue.push(exQueue.shift());
+  }
+  const i = exQueue.shift(); window.__lastEx = i; return EXAMPLES[i];
+}
 
 /* ===================================================================
    WIRING
@@ -1792,11 +2059,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if (splash){ splash.addEventListener('click', dismiss); setTimeout(dismiss, 2000); }
   })();
   syncColorUI();
+  const hasOutput = () => LAST || !$('#carousel').hidden;
   $('#generate').addEventListener('click', generate);
-  $('#charttype').addEventListener('change', ()=>{ if(LAST) generate(); });
+  $('#charttype').addEventListener('change', ()=>{ if(hasOutput()) generate(); });
   ['hex-bg','hex-ink','hex-accent'].forEach(id=>{
-    $('#'+id).addEventListener('input', ()=>{ syncColorUI(); if(LAST) generate(); });
+    $('#'+id).addEventListener('input', ()=>{ syncColorUI(); if(hasOutput()) generate(); });
   });
+  // carousel controls
+  $('#carPrev').addEventListener('click', ()=> goToCard(carIdx-1));
+  $('#carNext').addEventListener('click', ()=> goToCard(carIdx+1));
+  $('#backOptions').addEventListener('click', backToOptions);
+  window.addEventListener('resize', ()=>{ if(!$('#carousel').hidden) applyCar(); });
   // chip click → colour-picker popover (native picker + hex field + close button)
   function closeColorPops(){ document.querySelectorAll('.cpop').forEach(p=>p.remove()); }
   function openColorPop(k, hex){
@@ -1832,17 +2105,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   $('#file').addEventListener('change', e=>{ if(e.target.files[0]) readFile(e.target.files[0]); });
   function loadExample(){
-    const ex = EXAMPLES[exIdx % EXAMPLES.length]; exIdx++;
+    const ex = nextExample();
     $('#data').value = ex.data; $('#insight').value = ex.insight;
     $('#charttype').value = 'auto'; generate();
     document.querySelector('.app').scrollIntoView({behavior:'smooth', block:'start'});
   }
   function resetTool(){
+    stopAnims();
     $('#data').value=''; $('#insight').value=''; $('#charttype').value='auto';
-    $('#figure').hidden=true; $('#exportBar').hidden=true; $('#placeholder').hidden=false;
-    $('#detected').textContent=''; $('#chart').innerHTML=''; LAST=null;
+    $('#figure').hidden=true; $('#exportBar').hidden=true; $('#backOptions').hidden=true;
+    $('#carousel').hidden=true; $('#carTrack').innerHTML=''; $('#placeholder').hidden=false;
+    $('#detected').textContent=''; $('#chart').innerHTML=''; LAST=null; CARDS=[]; GEN=null;
     $('#navExport').disabled=true;
-    if (window.__cvHideTip) window.__cvHideTip();
     window.scrollTo({top:0, behavior:'smooth'});
   }
   function slugName(){ return (LAST.numName||'chart').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
