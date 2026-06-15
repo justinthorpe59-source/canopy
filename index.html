@@ -280,6 +280,101 @@
   .cv-tip b{display:block;font-weight:600;margin-bottom:1px}
   .cv-tip span{opacity:.82;font-variant-numeric:tabular-nums}
   /*FIGURE_CSS_END*/
+
+  /* ===== Round 9 features ===== */
+  /* F5: two crossfading background layers */
+  .bg-layer{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat}
+  #bgFront{opacity:0;transition:opacity 3s ease-in-out}
+
+  /* F4: projects bar in nav */
+  .nav{justify-content:space-between}
+  .proj-bar{position:relative;z-index:40}
+  .proj-btn{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.34);
+    color:#fff;font-family:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:30px;cursor:pointer;
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);text-shadow:0 1px 4px rgba(0,0,0,.35);max-width:46vw}
+  .proj-btn:hover{background:rgba(255,255,255,.28)}
+  .proj-btn #projName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:30vw}
+  .proj-dot{width:8px;height:8px;border-radius:50%;background:var(--accent,#C4614A);flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+  .proj-menu{position:absolute;top:calc(100% + 8px);left:0;width:300px;max-width:84vw;background:rgba(252,250,246,.97);
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid rgba(0,0,0,.08);border-radius:14px;
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.5);padding:12px;color:#1a1a1a}
+  .pm-head{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a8a8a;margin:2px 2px 8px}
+  .proj-row{display:flex;align-items:center;gap:4px;border-radius:9px;padding:2px}
+  .proj-row.active{background:rgba(196,97,74,.12)}
+  .proj-row .proj-pick{flex:1;text-align:left;background:none;border:none;font:inherit;font-size:13.5px;font-weight:600;color:#1a1a1a;cursor:pointer;padding:8px 8px;border-radius:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .proj-row .proj-pick:hover{background:rgba(0,0,0,.05)}
+  .proj-row .proj-ren,.proj-row .proj-del{background:none;border:none;cursor:pointer;color:#8a8a8a;font-size:14px;padding:6px 7px;border-radius:6px}
+  .proj-row .proj-ren:hover,.proj-row .proj-del:hover{background:rgba(0,0,0,.07);color:#1a1a1a}
+  .pm-new{width:100%;text-align:left;margin-top:8px;background:none;border:none;border-top:1px solid rgba(0,0,0,.08);
+    padding:10px 6px 4px;font:inherit;font-size:13px;font-weight:600;color:var(--accent,#C4614A);cursor:pointer}
+  .pm-new-form{display:flex;flex-direction:column;gap:8px;padding:6px 4px 4px}
+  .pm-new-form input[type=text]{padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit;font-size:13px;color:#000;background:#fff}
+  .pm-new-form label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#333;cursor:pointer}
+  .pm-actions{display:flex;gap:8px;margin-top:2px}
+  .pm-actions button{flex:1;padding:8px;border-radius:8px;border:1px solid var(--accent,#C4614A);background:var(--accent,#C4614A);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .pm-actions button.ghost{background:#fff;color:#555;border-color:rgba(0,0,0,.18)}
+  .pm-note{border-top:1px solid rgba(0,0,0,.08);margin-top:8px;padding-top:10px}
+  .pm-note label{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#8a8a8a;margin:0 2px 6px}
+  .pm-note input{width:100%;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit;font-size:12.5px;color:#000;background:#fff}
+
+  /* F1: saved palettes */
+  .pal-save-row{margin-top:10px}
+  .pal-name-input{width:100%;padding:8px 10px;border:1px solid var(--accent,#C4614A);border-radius:8px;font:inherit;font-size:12.5px;color:#000;background:#fff}
+  .saved-pals{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+  .palchip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.7);border:1px solid rgba(0,0,0,.1);
+    border-radius:20px;padding:3px 4px 3px 4px;font-size:11.5px;color:#1a1a1a}
+  .palchip .sw{width:18px;height:18px;border-radius:50%;cursor:pointer;flex:0 0 auto;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+  .palchip .nm{cursor:pointer;font-weight:600;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .palchip .del{background:none;border:none;color:#a08;color:#9a3b2e;cursor:pointer;font-size:14px;line-height:1;padding:0 4px}
+  .palchip .del:hover{color:#d7402f}
+
+  /* F2: refine box + refined badge */
+  .refine-box{width:100%;max-width:860px;margin:14px 0 0;align-self:flex-start}
+  .refine-row{display:flex;gap:9px}
+  .refine-row input{flex:1;padding:12px 14px;border:1px solid rgba(255,255,255,.5);border-radius:12px;font:inherit;font-size:13.5px;
+    color:#1a1a1a;background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+  .refine-row input::placeholder{color:#8a8a8a}
+  .refine-send{flex:0 0 auto;width:46px;border-radius:12px;border:1px solid var(--accent,#C4614A);background:var(--accent,#C4614A);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .refine-send:hover{background:#b0533d}
+  .refine-send svg{width:18px;height:18px}
+  .refine-msg{font-size:12px;margin-top:7px;min-height:14px;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+  .refine-msg.ok{color:#cdeccd}
+  .refine-msg.note{color:#ffe2b0}
+  .refined-badge{position:absolute;top:14px;right:16px;background:var(--accent,#C4614A);color:#fff;font-size:10.5px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:20px;z-index:4}
+  .cv-figure{position:relative}
+
+  /* F3: output format aspect-ratio preview */
+  #chart{aspect-ratio:var(--fmt,16/9);display:flex;align-items:center;justify-content:center}
+  #chart > svg{width:auto;height:auto;max-width:100%;max-height:100%}
+
+  /* F1: recent-outputs sidebar */
+  .sidebar{position:fixed;top:0;right:0;height:100vh;width:300px;max-width:86vw;z-index:60;
+    transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1)}
+  .sidebar.open{transform:translateX(0)}
+  .sb-handle{position:absolute;top:50%;left:0;transform:translate(-100%,-50%);writing-mode:vertical-rl;
+    background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.34);border-right:none;color:#fff;
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);cursor:pointer;padding:16px 8px;border-radius:12px 0 0 12px;
+    font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+  .sb-handle span{transform:rotate(180deg)}
+  .sb-inner{height:100%;background:rgba(250,248,244,.97);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);
+    border-left:1px solid rgba(0,0,0,.08);box-shadow:-30px 0 80px -40px rgba(0,0,0,.5);
+    display:flex;flex-direction:column;padding:18px 14px}
+  .sb-head{font-size:12px;font-weight:600;color:#555;margin:4px 4px 12px}
+  .sb-head strong{color:#1a1a1a}
+  .hist-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+  .hist-empty{font-size:12.5px;color:#8a8a8a;padding:20px 6px;line-height:1.5}
+  .hist-item{display:flex;gap:10px;align-items:center;cursor:pointer;border-radius:10px;padding:6px;border:1px solid transparent;transition:.15s}
+  .hist-item:hover{background:#fff;border-color:rgba(0,0,0,.08);box-shadow:0 8px 24px -16px rgba(0,0,0,.4)}
+  .hist-thumb{flex:0 0 84px;width:84px;height:54px;border-radius:7px;overflow:hidden;display:flex;align-items:center;justify-content:center;
+    background:#eee;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+  .hist-thumb svg{width:100%;height:100%;display:block}
+  .hist-thumb.blank{font-size:10px;color:#999;text-align:center;padding:4px}
+  .hist-meta{min-width:0;display:flex;flex-direction:column;gap:3px}
+  .hist-meta .hi{font-size:12px;font-weight:600;color:#1a1a1a;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .hist-meta .ts{font-size:10.5px;color:#999}
+  .sb-clear{margin-top:12px;background:none;border:1px solid rgba(0,0,0,.16);color:#9a3b2e;font:inherit;font-size:12.5px;font-weight:600;border-radius:9px;padding:9px;cursor:pointer}
+  .sb-clear:hover{background:rgba(154,59,46,.08);border-color:#9a3b2e}
 </style>
 </head>
 <body>
@@ -291,11 +386,34 @@
     </div>
   </div>
   <div class="page-bg" id="pageBg" aria-hidden="true">
+    <div class="bg-layer" id="bgBack"></div>
+    <div class="bg-layer" id="bgFront"></div>
   </div>
   <div class="page-scrim" aria-hidden="true"></div>
 
   <header>
     <nav class="nav">
+      <div class="proj-bar">
+        <button class="proj-btn" id="projBtn" type="button" title="Projects">
+          <span class="proj-dot"></span><span id="projName">Untitled project</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="proj-menu" id="projMenu" hidden>
+          <div class="pm-head">Projects</div>
+          <div class="proj-list" id="projList"></div>
+          <button class="pm-new" id="projNewBtn" type="button">+ New project</button>
+          <div class="pm-new-form" id="projNewForm" hidden>
+            <input type="text" id="projNewName" placeholder="Project name" maxlength="40">
+            <label><input type="checkbox" id="projNewPal" checked> Lock current palette</label>
+            <label><input type="checkbox" id="projNewFmt" checked> Lock current format</label>
+            <div class="pm-actions"><button id="projCreate" type="button">Create</button><button id="projCancel" type="button" class="ghost">Cancel</button></div>
+          </div>
+          <div class="pm-note">
+            <label for="projNote">Context note</label>
+            <input type="text" id="projNote" placeholder="e.g. UK retail banking audience, board level" maxlength="120">
+          </div>
+        </div>
+      </div>
       <div class="nav-links">
         <button class="opt" id="navExample">Example</button>
         <button class="opt" id="navReset">Reset</button>
@@ -346,7 +464,10 @@
       </div>
 
       <div class="field">
-        <label>Brand colours <span class="hint">— override the defaults</span></label>
+        <div class="row-between" style="margin-bottom:8px">
+          <label style="margin:0">Brand colours <span class="hint">— override the defaults</span></label>
+          <button class="linkbtn" id="savePalBtn" type="button">Save palette</button>
+        </div>
         <div class="swatches">
           <div class="swatch">
             <span>Background</span>
@@ -361,6 +482,8 @@
             <div class="hexwrap"><div class="chip" id="chip-accent"></div><input type="text" id="hex-accent" value="#C4614A" maxlength="7" spellcheck="false"></div>
           </div>
         </div>
+        <div class="pal-save-row" id="palSaveRow"></div>
+        <div class="saved-pals" id="savedPals"></div>
       </div>
 
       <div class="field">
@@ -421,6 +544,16 @@
         </select>
       </div>
 
+      <div class="field">
+        <label for="formatSel">Format</label>
+        <select id="formatSel">
+          <option value="deck">Deck slide — 16:9, larger type</option>
+          <option value="document">Document — A4 portrait, dense</option>
+          <option value="square">Square — 1:1, balanced</option>
+          <option value="portrait">Portrait — 4:5, mobile/portrait</option>
+        </select>
+      </div>
+
       <button class="generate" id="generate">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         Generate
@@ -438,6 +571,7 @@
 
         <!-- single full-width output; arrows page through the 5 generated options -->
         <figure class="cv-figure" id="figure" hidden>
+          <span class="refined-badge" id="refinedBadge" hidden>Refined</span>
           <figcaption class="cv-head" id="headline"></figcaption>
           <div class="pager" id="pager">
             <button class="pg-arrow prev" id="pgPrev" type="button" aria-label="Previous option">&#8249;</button>
@@ -459,8 +593,29 @@
         <button class="xbtn" id="svgBtn"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Download .svg</button>
         <button class="xbtn primary" id="downloadBtn"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Download .html</button>
       </div>
+
+      <!-- Feature 2: refine the currently displayed option -->
+      <div class="refine-box" id="refineBox" hidden>
+        <div class="refine-row">
+          <input type="text" id="refineInput" placeholder="e.g. highlight the highest value, swap to a dark background, make the labels larger">
+          <button class="refine-send" id="refineSend" type="button" aria-label="Refine">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="refine-msg" id="refineMsg"></div>
+      </div>
     </main>
   </div>
+
+  <!-- Feature 1: recent-outputs sidebar -->
+  <aside class="sidebar" id="sidebar" aria-label="Recent outputs">
+    <button class="sb-handle" id="sbHandle" type="button" title="Recent outputs"><span>Recent</span></button>
+    <div class="sb-inner">
+      <div class="sb-head">Recent in <strong id="sbProj">project</strong></div>
+      <div class="hist-list" id="histList"></div>
+      <button class="sb-clear" id="sbClear" type="button">Clear history</button>
+    </div>
+  </aside>
 
 <script>
 /* ===================================================================
@@ -1601,7 +1756,8 @@ function validateFor(type, data){
 // state for the 5-option pager (one full-width chart at a time, arrow-navigated)
 let CARDS = [], GEN = null, curOpt = 0, navBusy = false;
 
-function generate(){
+function generate(opt){
+  const explicit = opt !== false;            // reactive re-renders (colour/format tweaks) pass false
   syncColorUI();
   const raw = $('#data').value;
   const insight = $('#insight').value.trim();
@@ -1651,6 +1807,9 @@ function generate(){
   renderOption(0);                          // paint the first option…
   pulseIn($('#chart'));                     // …with the settle-in animation
   const navExp = $('#navExport'); if (navExp) navExp.disabled = false;
+  if (explicit) HIST_ID = null;             // explicit Generate starts a new history entry
+  scheduleCommit(explicit);                 // Feature 1/4: save this generation to project history
+  refreshRefineUI();                        // Feature 2: reveal the refine input
 }
 
 // render the option at idx into the single full-width slot and point exports at it
@@ -1675,7 +1834,9 @@ function renderOption(idx){
 
   const numName = (data.columns.find(col=>col.type==='number')||{}).name || '';
   const catName = ctx.cat || '';
-  LAST = { data, type:r.type, insight, numName, catName, colors:c };
+  LAST = { data, type:r.type, insight, numName, catName, colors:c, refined:!!r.refined };
+  applyOutputScaling(r);                       // Feature 3 aspect + type scale (+ Feature 2 refine font)
+  const badge=$('#refinedBadge'); if(badge) badge.hidden = !r.refined;   // Feature 2 "Refined" marker
   $('#pgPrev').disabled = curOpt <= 0;
   $('#pgNext').disabled = curOpt >= CARDS.length - 1;
 }
@@ -1693,6 +1854,8 @@ function navTo(dir){
     el.classList.remove('pg-leave-next','pg-leave-prev');
     renderOption(next);
     pulseIn(el);
+    scheduleCommit(false);                  // history reflects the option now in view
+    refreshRefineUI();
     setTimeout(() => { navBusy = false; }, 240);
   }, 150);
 }
@@ -1928,17 +2091,303 @@ function readFile(file){
   }
 }
 
+/* ===================================================================
+   ROUND 9 — persistence layer (palettes · projects · history · format ·
+   refine · rotating background). Self-contained: no API/LLM — the brief's
+   "AI" steps are implemented as local heuristics. localStorage-backed.
+   =================================================================== */
+const LS = {
+  get(k, def){ try{ const v=localStorage.getItem(k); return v==null?def:JSON.parse(v); }catch(e){ return def; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ console.warn('localStorage write failed', e); return false; } },
+  bytes(){ let n=0; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); n += (k.length + (localStorage.getItem(k)||'').length); } }catch(e){} return n*2; },
+  ratio(){ return this.bytes()/(5*1024*1024); }
+};
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function escAttr(s){ return String(s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+/* ---- output formats (Feature 3) ---- */
+const FORMATS = {
+  deck:     { label:'Deck slide', ratio:16/9,    fontScale:1.18, density:0.8,  note:'16:9 · larger type' },
+  document: { label:'Document',   ratio:1/1.414, fontScale:0.88, density:1.3,  note:'A4 portrait · dense' },
+  square:   { label:'Square',     ratio:1,       fontScale:1.05, density:1.0,  note:'1:1 · balanced' },
+  portrait: { label:'Portrait',   ratio:4/5,     fontScale:1.0,  density:1.1,  note:'4:5 · portrait' }
+};
+function currentFormat(){ const f=$('#formatSel'); return (f && FORMATS[f.value]) ? f.value : 'deck'; }
+function applyOutputScaling(recipe){
+  const f = FORMATS[currentFormat()] || FORMATS.deck;
+  const chartEl = $('#chart'); if(!chartEl) return;
+  chartEl.style.setProperty('--fmt', f.ratio);
+  const k = (f.fontScale||1) * ((recipe && recipe.fontScale) || 1);
+  const svg = chartEl.querySelector('svg');
+  if (svg && k !== 1){
+    svg.querySelectorAll('text').forEach(t=>{ const cs=parseFloat(getComputedStyle(t).fontSize)||12; t.style.fontSize=(cs*k)+'px'; });
+  }
+}
+function applyFormatPreview(){
+  const f = FORMATS[currentFormat()] || FORMATS.deck;
+  const chartEl = $('#chart'); if(chartEl) chartEl.style.setProperty('--fmt', f.ratio);
+  if (!$('#figure').hidden && CARDS[curOpt]) renderOption(curOpt);
+  updateActiveProject(p=>{ p.format = currentFormat(); });
+}
+
+/* ---- saved palettes (Feature 1) ---- */
+const PAL_KEY='canopy.palettes';
+const DEFAULT_PALS=[
+  {name:'Canopy default', bg:'#F5F0E8', ink:'#1A1A1A', accent:'#C4614A'},
+  {name:'Dark mode',      bg:'#14241B', ink:'#E7E0CE', accent:'#F2792B'},
+  {name:'Monochrome',     bg:'#F4F1EA', ink:'#1A1A1A', accent:'#1A1A1A'}
+];
+function getPalettes(){ let p=LS.get(PAL_KEY,null); if(!p){ p=DEFAULT_PALS.slice(); LS.set(PAL_KEY,p);} return p; }
+function savePalette(name){
+  name=(name||'').trim(); if(!name) return;
+  const p=getPalettes();
+  const cur={ name, bg:$('#hex-bg').value, ink:$('#hex-ink').value, accent:$('#hex-accent').value };
+  const i=p.findIndex(x=>x.name.toLowerCase()===name.toLowerCase());
+  if(i>=0) p[i]=cur; else p.push(cur);
+  LS.set(PAL_KEY,p); renderPalettes();
+}
+function deletePalette(name){ LS.set(PAL_KEY, getPalettes().filter(x=>x.name!==name)); renderPalettes(); }
+function applyPalette(pal){
+  $('#hex-bg').value=pal.bg; $('#hex-ink').value=pal.ink; $('#hex-accent').value=pal.accent;
+  syncColorUI(); if(LAST || !$('#figure').hidden) generate(false);
+}
+function renderPalettes(){
+  const wrap=$('#savedPals'); if(!wrap) return;
+  wrap.innerHTML='';
+  getPalettes().forEach(pal=>{
+    const chip=document.createElement('div'); chip.className='palchip'; chip.title=pal.name+' — click to apply';
+    chip.innerHTML='<span class="sw" style="background:linear-gradient(135deg,'+pal.bg+' 0 38%,'+pal.ink+' 38% 68%,'+pal.accent+' 68% 100%)"></span>'+
+      '<span class="nm">'+escAttr(pal.name)+'</span><button class="del" title="Delete palette" aria-label="Delete">&times;</button>';
+    chip.querySelector('.sw').addEventListener('click',()=>applyPalette(pal));
+    chip.querySelector('.nm').addEventListener('click',()=>applyPalette(pal));
+    chip.querySelector('.del').addEventListener('click',e=>{ e.stopPropagation(); deletePalette(pal.name); });
+    wrap.appendChild(chip);
+  });
+}
+function startSavePalette(){
+  const host=$('#palSaveRow'); if(!host || host.querySelector('input')) return;
+  const inp=document.createElement('input'); inp.type='text'; inp.className='pal-name-input'; inp.placeholder='Name this palette, press Enter'; inp.maxLength=28;
+  host.appendChild(inp); inp.focus();
+  const done=ok=>{ if(ok && inp.value.trim()) savePalette(inp.value); inp.remove(); };
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ done(true);} else if(e.key==='Escape'){ done(false);} });
+  inp.addEventListener('blur',()=>done(true));
+}
+
+/* ---- projects (Feature 4) — storage + active state ---- */
+const PROJ_KEY='canopy.projects', ACTIVE_KEY='canopy.activeProject';
+function getProjects(){
+  let ps=LS.get(PROJ_KEY,null);
+  if(!ps || !ps.length){ ps=[{ id:uid(), name:'Untitled project', note:'', palette:null, format:'deck', charts:[], created:Date.now() }]; LS.set(PROJ_KEY,ps); }
+  return ps;
+}
+function saveProjects(ps){ LS.set(PROJ_KEY,ps); }
+function activeProjectId(){
+  let id=LS.get(ACTIVE_KEY,null); const ps=getProjects();
+  if(!id || !ps.some(p=>p.id===id)){ id=ps[0].id; LS.set(ACTIVE_KEY,id); }
+  return id;
+}
+function activeProject(){ const id=activeProjectId(); return getProjects().find(p=>p.id===id); }
+function updateActiveProject(mut){ const ps=getProjects(); const p=ps.find(x=>x.id===activeProjectId()); if(!p) return; mut(p); saveProjects(ps); }
+function setActiveProject(id){
+  LS.set(ACTIVE_KEY,id);
+  const p=activeProject(); if(!p) return;
+  // Visual consistency (F4): a locked palette wins; else inherit the established style from
+  // this project's existing charts so subsequent generations match. User can still override.
+  const seed = p.palette || (p.charts && p.charts.length && p.charts[0].colors);
+  if(seed){ $('#hex-bg').value=seed.bg; $('#hex-ink').value=seed.ink; $('#hex-accent').value=seed.accent; syncColorUI(); }
+  if(p.format && $('#formatSel')){ $('#formatSel').value=p.format; applyOutputScaling(CARDS[curOpt]); }
+  HIST_ID=null;
+  renderProjectUI(); renderHistory();
+}
+function createProject(name, lockPalette, lockFormat, note){
+  const ps=getProjects();
+  const p={ id:uid(), name:(name||'Untitled project').trim()||'Untitled project', note:(note||'').trim(),
+    palette: lockPalette ? { bg:$('#hex-bg').value, ink:$('#hex-ink').value, accent:$('#hex-accent').value } : null,
+    format: lockFormat ? currentFormat() : 'deck', charts:[], created:Date.now() };
+  ps.push(p); saveProjects(ps); setActiveProject(p.id);
+}
+function renameProject(id,name){ const ps=getProjects(); const p=ps.find(x=>x.id===id); if(p && name && name.trim()){ p.name=name.trim(); saveProjects(ps); renderProjectUI(); } }
+function deleteProject(id){
+  let ps=getProjects(); if(ps.length<=1) return;
+  ps=ps.filter(p=>p.id!==id); saveProjects(ps);
+  if(activeProjectId()===id){ LS.set(ACTIVE_KEY, ps[0].id); setActiveProject(ps[0].id); } else { renderProjectUI(); }
+}
+function renderProjectUI(){
+  const p=activeProject(); if(!p) return;
+  const nm=$('#projName'); if(nm) nm.textContent=p.name;
+  const sp=$('#sbProj'); if(sp) sp.textContent=p.name;
+  const note=$('#projNote'); if(note && document.activeElement!==note) note.value=p.note||'';
+  const list=$('#projList');
+  if(list){
+    list.innerHTML='';
+    getProjects().forEach(pr=>{
+      const row=document.createElement('div'); row.className='proj-row'+(pr.id===p.id?' active':'');
+      row.innerHTML='<button class="proj-pick" title="Switch to this project">'+escAttr(pr.name)+'</button>'+
+        '<button class="proj-ren" title="Rename" aria-label="Rename">✎</button>'+
+        (getProjects().length>1?'<button class="proj-del" title="Delete" aria-label="Delete">&times;</button>':'');
+      row.querySelector('.proj-pick').addEventListener('click',()=>{ setActiveProject(pr.id); $('#projMenu').hidden=true; });
+      row.querySelector('.proj-ren').addEventListener('click',e=>{ e.stopPropagation(); const n=prompt('Rename project', pr.name); if(n) renameProject(pr.id,n); });
+      const del=row.querySelector('.proj-del'); if(del) del.addEventListener('click',e=>{ e.stopPropagation(); if(confirm('Delete project "'+pr.name+'" and its history?')) deleteProject(pr.id); });
+      list.appendChild(row);
+    });
+  }
+}
+
+/* ---- chart history (Feature 1 + Feature 4 storage rules) ---- */
+let HIST_ID=null, _commitTimer=null, _commitNew=false;
+// Debounced so a colour drag (many reactive re-renders) collapses into ONE saved entry.
+function scheduleCommit(newSession){
+  if(newSession) _commitNew=true;
+  clearTimeout(_commitTimer);
+  _commitTimer=setTimeout(()=>{ commitHistory(_commitNew); _commitNew=false; }, 500);
+}
+function commitHistory(newSession){
+  if(!LAST || !GEN) return;
+  let html=''; try{ html=buildExportHTML(); }catch(e){}
+  const entry={ ts:Date.now(), insight:LAST.insight||'', type:LAST.type, format:currentFormat(),
+    data:$('#data').value, colors:LAST.colors, refined: !!(CARDS[curOpt] && CARDS[curOpt].refined), html };
+  updateActiveProject(p=>{
+    if(newSession || !HIST_ID || !p.charts.some(c=>c.id===HIST_ID)){ entry.id=uid(); HIST_ID=entry.id; p.charts.unshift(entry); }
+    else { const e=p.charts.find(c=>c.id===HIST_ID); Object.assign(e, entry, {id:HIST_ID}); }
+    p.charts.forEach((c,i)=>{ if(i>=5) delete c.html; });   // F4: full HTML only for last 5
+    if(p.charts.length>40) p.charts.length=40;
+  });
+  enforceQuota();
+  const sb=$('#sidebar'); if(sb && sb.classList.contains('open')) renderHistory();  // only re-render thumbs if visible
+}
+function enforceQuota(){
+  let guard=0;
+  while(LS.ratio()>0.8 && guard++<300){
+    const ps=getProjects(); let oldest=null, op=null;
+    ps.forEach(p=>p.charts.forEach(c=>{ if(!oldest||c.ts<oldest.ts){ oldest=c; op=p; } }));
+    if(!oldest) break;
+    op.charts=op.charts.filter(c=>c!==oldest); saveProjects(ps);
+  }
+}
+function clearHistory(){ updateActiveProject(p=>{ p.charts=[]; }); HIST_ID=null; renderHistory(); }
+function renderHistory(){
+  const list=$('#histList'); if(!list) return;
+  const p=activeProject(); const items=(p&&p.charts?p.charts:[]).slice(0,10);
+  list.innerHTML='';
+  if(!items.length){ list.innerHTML='<div class="hist-empty">No charts yet — generate one and it lands here.</div>'; return; }
+  items.forEach(c=>{
+    const card=document.createElement('div'); card.className='hist-item'; card.title=c.insight||c.type;
+    const thumb=document.createElement('div'); thumb.className='hist-thumb';
+    try{
+      const data=parseInput(c.data);
+      const ctx=buildContext(data, c.type, { c:c.colors, W:240, still:true });
+      thumb.style.background=(c.colors&&c.colors.bg)||'#fff';
+      RENDERERS[c.type](d3.select(thumb).append('svg'), ctx);
+    }catch(e){ thumb.classList.add('blank'); thumb.textContent=(TYPE_NAMES[c.type]||c.type); }
+    const meta=document.createElement('div'); meta.className='hist-meta';
+    meta.innerHTML='<span class="hi">'+escAttr((c.insight||TYPE_NAMES[c.type]||c.type).slice(0,52))+'</span>'+
+      '<span class="ts">'+new Date(c.ts).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+(c.refined?' · refined':'')+'</span>';
+    card.appendChild(thumb); card.appendChild(meta);
+    card.addEventListener('click',()=>restoreChart(c));
+    list.appendChild(card);
+  });
+}
+function restoreChart(c){
+  $('#data').value=c.data; $('#insight').value=c.insight||'';
+  if(c.colors){ $('#hex-bg').value=c.colors.bg; $('#hex-ink').value=c.colors.ink; $('#hex-accent').value=c.colors.accent; syncColorUI(); }
+  if(c.format && $('#formatSel')) $('#formatSel').value=c.format;
+  const data=parseInput(c.data);
+  GEN={ data, insight:c.insight||'' };
+  CARDS=[{ type:c.type, c:c.colors||currentColors(), refined:!!c.refined }]; curOpt=0; navBusy=false;
+  $('#placeholder').hidden=true; $('#figure').hidden=false; $('#exportBar').hidden=false;
+  $('#headline').textContent=(c.insight)||humanTitle(data, buildContext(data, c.type, { c:c.colors||currentColors() }));
+  const numName=(data.columns.find(x=>x.type==='number')||{}).name||'';
+  const catName=(data.columns.filter(x=>x.type==='category'||x.type==='date')[0]||{}).name||'';
+  $('#footmeta').textContent=catName?numName+' by '+catName:numName;
+  HIST_ID=c.id;
+  renderOption(0); pulseIn($('#chart'));
+  $('#navExport').disabled=false;
+  closeSidebar();
+  refreshRefineUI();
+  document.querySelector('.app').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ---- refine this one (Feature 2) — local instruction parser ---- */
+const REFINE_COLORS={ red:'#D7402F',orange:'#E2592B',amber:'#F2A93B',yellow:'#E9C03A',green:'#3F8F4F',
+  teal:'#1F8A7A',blue:'#2E6BD6',navy:'#1C2E52',indigo:'#3F4FB0',purple:'#7A3FB0',violet:'#7A3FB0',
+  pink:'#E84C7A',magenta:'#D6479B',coral:'#FF6B5C',gold:'#C9A227',lime:'#9FBF3C',cyan:'#1FA6B8' };
+function applyRefinement(instr){
+  instr=(instr||'').trim(); if(!instr) return;
+  const r=CARDS[curOpt]; if(!r || $('#figure').hidden){ return; }
+  const t=instr.toLowerCase(); const changed=[];
+  let colors=Object.assign({}, r.c||currentColors());
+  let fontScale=r.fontScale||1;
+  // background
+  if(/\bdark\b|\bnight\b|\bblack background\b/.test(t)){ colors=mkColors('#15201A','#ECE6D8',colors.accent); changed.push('dark background'); }
+  else if(/\blight\b|\bwhite background\b|\bbright\b/.test(t)){ colors=mkColors('#F4F1EA','#1A1A1A',colors.accent); changed.push('light background'); }
+  // monochrome
+  if(/\bmono(chrome)?\b|\bgrayscale\b|\bgreyscale\b|\bone colou?r\b/.test(t)){ colors=mkColors(colors.bg, colors.ink, colors.ink); changed.push('monochrome'); }
+  // accent colour by name
+  for(const k in REFINE_COLORS){ if(new RegExp('\\b'+k+'\\b').test(t)){ colors=mkColors(colors.bg, colors.ink, REFINE_COLORS[k]); changed.push(k+' accent'); break; } }
+  // label / font size
+  if(/\b(larger|bigger|increase|grow|biggest|huge|large)\b/.test(t) && /\b(label|text|font|type|number|title)/.test(t)){ fontScale=Math.min(1.8, fontScale*1.25); changed.push('larger labels'); }
+  else if(/\b(smaller|reduce|shrink|tiny|small|tighten)\b/.test(t) && /\b(label|text|font|type|number|title)/.test(t)){ fontScale=Math.max(0.6, fontScale*0.8); changed.push('smaller labels'); }
+  r.c=colors; r.fontScale=fontScale; r.refined=true;
+  renderOption(curOpt); pulseIn($('#chart'));
+  if(LAST) LAST.refined=true;
+  const msg=$('#refineMsg');
+  if(changed.length){ if(msg){ msg.className='refine-msg ok'; msg.textContent='Applied: '+changed.join(', ')+'.'; } commitHistory(false); }
+  else if(msg){ msg.className='refine-msg note'; msg.textContent='Local refine handles colour, background (dark/light), monochrome and label size. “'+instr.slice(0,40)+'” needs the AI build — see note.'; }
+  $('#refineInput').value='';
+}
+function refreshRefineUI(){
+  const box=$('#refineBox'); if(!box) return;
+  box.hidden = $('#figure').hidden;
+  const badge=$('#refinedBadge'); if(badge) badge.hidden = !(CARDS[curOpt] && CARDS[curOpt].refined);
+}
+
+/* ---- recent-outputs sidebar (Feature 1) ---- */
+function openSidebar(){ const s=$('#sidebar'); if(s){ s.classList.add('open'); renderHistory(); } }
+function closeSidebar(){ const s=$('#sidebar'); if(s) s.classList.remove('open'); }
+function toggleSidebar(){ const s=$('#sidebar'); if(!s) return; s.classList.toggle('open'); if(s.classList.contains('open')) renderHistory(); }
+
+/* ---- continuously rotating background (Feature 5) ---- */
+let bgOrder=[], bgPos=0, bgTimer=null;
+function setBothBg(url){ const u='url("'+url+'")'; ['#bgBack','#bgFront'].forEach(id=>{ const e=$(id); if(e) e.style.backgroundImage=u; }); const f=$('#bgFront'); if(f) f.style.opacity='0'; }
+function startBgRotation(startIdx){
+  if(!BG_IMAGES || BG_IMAGES.length<=1) return;            // single image → no cycling, silently
+  bgOrder=[]; for(let i=0;i<BG_IMAGES.length;i++) bgOrder.push((startIdx+i)%BG_IMAGES.length);
+  bgPos=0;
+  if(bgTimer) clearInterval(bgTimer);
+  bgTimer=setInterval(advanceBg, 75000);                   // every 75s
+}
+function advanceBg(){
+  const front=$('#bgFront'), back=$('#bgBack'); if(!front||!back) return;
+  bgPos=(bgPos+1)%bgOrder.length;
+  const img=BG_IMAGES[bgOrder[bgPos]];
+  // transition is on `opacity` only, so setting the image then opacity=1 crossfades over 3s
+  front.style.transition='';                                 // ensure the 3s transition is active
+  front.style.backgroundImage='url("'+img+'")';
+  front.style.opacity='1';                                   // 0 → 1 over 3s (CSS)
+  setTimeout(()=>{
+    back.style.backgroundImage='url("'+img+'")';             // promote incoming to base
+    front.style.transition='none'; front.style.opacity='0';  // reset front invisibly (no visible fade-out)
+    void front.offsetWidth; front.style.transition='';
+  }, 3200);
+}
+
 document.addEventListener('DOMContentLoaded', ()=>{
   // --- per-session: random full-bleed background (shared by splash + page) and random palette ---
   (function initSession(){
-    const bg = BG_IMAGES.length ? BG_IMAGES[Math.floor(Math.random()*BG_IMAGES.length)] : '';
+    // Feature 5: random starting image (splash + page use it); rotation begins after load.
+    const startIdx = BG_IMAGES.length ? Math.floor(Math.random()*BG_IMAGES.length) : 0;
+    const bg = BG_IMAGES.length ? BG_IMAGES[startIdx] : '';
     if (bg){
       const url = 'url("'+bg+'")';
-      const pb = document.getElementById('pageBg'); if (pb) pb.style.backgroundImage = url;
+      setBothBg(bg);
       const sp = document.getElementById('splash'); if (sp) sp.style.backgroundImage = url;
     }
-    const pal = PALETTES[Math.floor(Math.random()*PALETTES.length)];
-    if (pal){ $('#hex-bg').value = pal.bg; $('#hex-ink').value = pal.ink; $('#hex-accent').value = pal.accent; }
+    startBgRotation(startIdx);
+    // Feature 4: active project's locked palette wins; otherwise a random curated palette.
+    const proj = activeProject();
+    if (proj && proj.palette){ $('#hex-bg').value=proj.palette.bg; $('#hex-ink').value=proj.palette.ink; $('#hex-accent').value=proj.palette.accent; }
+    else { const pal = PALETTES[Math.floor(Math.random()*PALETTES.length)]; if (pal){ $('#hex-bg').value = pal.bg; $('#hex-ink').value = pal.ink; $('#hex-accent').value = pal.accent; } }
+    if (proj && proj.format && $('#formatSel')) $('#formatSel').value = proj.format;
     const splash = document.getElementById('splash');
     function dismiss(){
       if (splash && !splash.classList.contains('hide')){
@@ -1950,10 +2399,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   })();
   syncColorUI();
   const hasOutput = () => LAST || !$('#figure').hidden;
-  $('#generate').addEventListener('click', generate);
-  $('#charttype').addEventListener('change', ()=>{ if(hasOutput()) generate(); });
+  $('#generate').addEventListener('click', ()=> generate());
+  $('#charttype').addEventListener('change', ()=>{ if(hasOutput()) generate(false); });
   ['hex-bg','hex-ink','hex-accent'].forEach(id=>{
-    $('#'+id).addEventListener('input', ()=>{ syncColorUI(); if(hasOutput()) generate(); });
+    $('#'+id).addEventListener('input', ()=>{ syncColorUI(); if(hasOutput()) generate(false); });
   });
   // pager controls — page through the 5 generated options, one full-width chart at a time
   $('#pgPrev').addEventListener('click', ()=> navTo(-1));
@@ -1978,7 +2427,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(!validHex(v)) return;
       v = v.toUpperCase();
       $('#'+hex).value = v; popHex.value = v; colorInp.value = v;
-      syncColorUI(); if(LAST) generate();
+      syncColorUI(); if(LAST) generate(false);
     }
     colorInp.addEventListener('input', e=>apply(e.target.value));
     popHex.addEventListener('input', e=>apply(e.target.value));
@@ -2002,7 +2451,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     stopAnims();
     $('#data').value=''; $('#insight').value=''; $('#charttype').value='auto';
     $('#figure').hidden=true; $('#exportBar').hidden=true; $('#placeholder').hidden=false;
-    $('#detected').textContent=''; $('#chart').innerHTML=''; LAST=null; CARDS=[]; GEN=null; curOpt=0;
+    $('#refineBox').hidden=true; $('#refinedBadge').hidden=true; const rm=$('#refineMsg'); if(rm) rm.textContent='';
+    $('#detected').textContent=''; $('#chart').innerHTML=''; LAST=null; CARDS=[]; GEN=null; curOpt=0; HIST_ID=null;
     $('#navExport').disabled=true;
     window.scrollTo({top:0, behavior:'smooth'});
   }
@@ -2037,6 +2487,33 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
   $('#downloadBtn').addEventListener('click', downloadExport);
   $('#svgBtn').addEventListener('click', downloadSVG);
+
+  /* ----- Round 9 feature wiring ----- */
+  // Feature 1: saved palettes
+  $('#savePalBtn').addEventListener('click', startSavePalette);
+  renderPalettes();
+  // Feature 3: format selector
+  $('#formatSel').addEventListener('change', applyFormatPreview);
+  applyFormatPreview();
+  // Feature 2: refine the displayed option
+  $('#refineSend').addEventListener('click', ()=> applyRefinement($('#refineInput').value));
+  $('#refineInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); applyRefinement($('#refineInput').value); } });
+  refreshRefineUI();
+  // Feature 1: recent-outputs sidebar
+  $('#sbHandle').addEventListener('click', toggleSidebar);
+  $('#sbClear').addEventListener('click', ()=>{ if(confirm('Clear recent outputs for this project?')) clearHistory(); });
+  // Feature 4: projects
+  $('#projBtn').addEventListener('click', e=>{ e.stopPropagation(); const m=$('#projMenu'); m.hidden=!m.hidden; });
+  $('#projNewBtn').addEventListener('click', ()=>{ $('#projNewForm').hidden=false; $('#projNewName').focus(); });
+  $('#projCancel').addEventListener('click', ()=>{ $('#projNewForm').hidden=true; });
+  $('#projCreate').addEventListener('click', ()=>{
+    createProject($('#projNewName').value, $('#projNewPal').checked, $('#projNewFmt').checked, $('#projNote').value);
+    $('#projNewName').value=''; $('#projNewForm').hidden=true; $('#projMenu').hidden=true;
+  });
+  $('#projNote').addEventListener('change', ()=>{ updateActiveProject(p=>{ p.note=$('#projNote').value; }); });
+  document.addEventListener('click', e=>{ if(!e.target.closest('.proj-bar')){ const m=$('#projMenu'); if(m) m.hidden=true; } });
+  renderProjectUI();
+  renderHistory();
 
   // global tooltip for the live app
   eval(TOOLTIP_JS);
