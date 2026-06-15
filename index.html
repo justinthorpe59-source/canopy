@@ -239,53 +239,31 @@
   .xbtn.primary:hover{background:#b0533d;color:#fff}
   .xbtn svg{width:14px;height:14px}
 
-  /* ---- 5-option carousel ---- */
-  .carousel{width:100%}
-  .car-head{display:flex;align-items:baseline;gap:12px;margin:0 2px 12px;flex-wrap:wrap}
-  .car-title{font-family:"Fraunces",Georgia,serif;font-size:18px;font-weight:500;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.5)}
-  .car-hint{font-size:12px;color:rgba(255,255,255,.84);text-shadow:0 1px 6px rgba(0,0,0,.55)}
-  .car-stage{position:relative;display:flex;align-items:center}
-  .car-viewport{overflow:hidden;width:100%;padding:4px 2px 10px}
-  .car-track{display:flex;gap:18px;align-items:stretch;transition:transform .35s cubic-bezier(.4,.6,.2,1);will-change:transform}
-  .cv-card{flex:0 0 clamp(270px,78%,400px);
-    background:var(--card-bg,#fff);color:var(--card-ink,#1a1a1a);border-radius:16px;
-    border:1px solid var(--card-line,rgba(0,0,0,.07));box-shadow:0 30px 70px -42px rgba(0,0,0,.55);
-    padding:16px 16px 14px;display:flex;flex-direction:column;min-height:300px;
-    transition:transform .18s ease, box-shadow .18s ease}
-  .cv-card:hover{transform:translateY(-3px);box-shadow:0 42px 92px -44px rgba(0,0,0,.62)}
-  .card-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--card-accent,var(--accent))}
-  .card-note{font-size:11px;color:var(--card-soft,#8a8a8a);margin:3px 0 0}
-  .card-chart{flex:1;display:flex;align-items:center;justify-content:center;margin:10px 0 12px;min-height:200px;width:100%}
-  .card-chart svg{width:100%;height:auto;display:block;overflow:visible}
-  .card-select{margin-top:auto;align-self:stretch;border:1px solid var(--card-accent,var(--accent));background:transparent;
-    color:var(--card-accent,var(--accent));font-family:inherit;font-size:12.5px;font-weight:600;border-radius:9px;
-    padding:9px 14px;cursor:pointer;transition:.15s}
-  .card-select:hover{background:var(--card-accent,var(--accent));color:#fff}
-  .skel{border-radius:8px;background:linear-gradient(100deg,rgba(0,0,0,.05) 30%,rgba(0,0,0,.11) 50%,rgba(0,0,0,.05) 70%);
-    background-size:200% 100%;animation:skelPulse 1.2s ease-in-out infinite}
-  @keyframes skelPulse{0%{background-position:200% 0}100%{background-position:-200% 0}}
-  .skel-label{width:46%;height:11px;margin:2px 0 14px}
-  .skel-chart{width:100%;height:210px;margin:6px 0 14px}
-  .skel-btn{width:100%;height:36px;margin-top:auto}
-  .card-error{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
-    color:#9a3b2e;font-size:12.5px;text-align:center;padding:20px;line-height:1.4}
-  .card-error button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:8px;
-    padding:6px 12px;font:inherit;font-size:12px;cursor:pointer}
-  .car-arrow{flex:0 0 auto;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.42);
-    background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-    color:#fff;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    box-shadow:0 8px 24px -8px rgba(0,0,0,.5);transition:.15s;z-index:2}
-  .car-arrow:hover{background:rgba(255,255,255,.34)}
-  .car-arrow:disabled{opacity:.28;cursor:default}
-  .car-arrow.prev{margin-right:8px}
-  .car-arrow.next{margin-left:8px}
-  .car-dots{display:flex;gap:7px;justify-content:center;margin-top:8px}
-  .car-dots .dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.45);border:none;padding:0;cursor:pointer;transition:.15s}
-  .car-dots .dot.on{background:#fff;transform:scale(1.25)}
-  .back-options{display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;
-    font-family:inherit;font-size:12.5px;font-weight:600;color:var(--accent);padding:0;margin:0 0 14px}
-  .back-options:hover{text-decoration:underline}
-  @media(max-width:560px){ .cv-card{flex-basis:84%} }
+  /* ---- export-bar transparent-background toggle ---- */
+  .xtoggle{margin-right:auto;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+    font-size:12.5px;font-weight:600;color:var(--ink);user-select:none}
+  .xtoggle input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;margin:0}
+
+  /* ---- single-chart pager (one option at a time, full width; arrows page) ---- */
+  .pager{position:relative}
+  .pg-arrow{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;
+    border:1px solid var(--line,rgba(0,0,0,.12));background:rgba(150,150,150,.16);color:var(--ink,#1a1a1a);
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 22px -10px rgba(0,0,0,.45);transition:.15s;z-index:3}
+  .pg-arrow.prev{left:-4px}
+  .pg-arrow.next{right:-4px}
+  .pg-arrow:hover{border-color:var(--accent);color:var(--accent);background:rgba(150,150,150,.26)}
+  .pg-arrow:disabled{opacity:.22;cursor:default;pointer-events:none}
+  .pg-error{padding:60px 20px;text-align:center;color:var(--ink-soft,#888);font-size:13.5px}
+  /* weighted page-turn — bezier(.4,0,.2,1), ~380ms total, settle-in scale, no bounce */
+  @keyframes pgEnter{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+  @keyframes pgLeaveNext{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-18px)}}
+  @keyframes pgLeavePrev{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(18px)}}
+  #chart{transform-origin:center}
+  #chart.pg-enter{animation:pgEnter .23s cubic-bezier(.4,0,.2,1) both}
+  #chart.pg-leave-next{animation:pgLeaveNext .15s cubic-bezier(.4,0,.2,1) forwards}
+  #chart.pg-leave-prev{animation:pgLeavePrev .15s cubic-bezier(.4,0,.2,1) forwards}
 
   /* ---- shared figure animation + interaction (also used in export) ---- */
   /*FIGURE_CSS_START*/
@@ -330,7 +308,7 @@
         <div class="hero-row">
           <div class="hero-lockup">
             <h1>Canopy</h1>
-            <p class="strap">Data, shaped into something worth looking at.</p>
+            <p class="strap">Data worth looking at.</p>
             <p class="byline">by Justin Thorpe</p>
           </div>
           <div class="hero-aside">
@@ -458,25 +436,14 @@
           <p>Paste your numbers, name the insight you want to land, and Canopy renders an editorial-quality visualisation — never a default chart.</p>
         </div>
 
-        <!-- 5-option carousel (shown after Generate) -->
-        <section class="carousel" id="carousel" hidden aria-label="Chart options">
-          <div class="car-head">
-            <span class="car-title" id="carTitle">Five ways to show this</span>
-            <span class="car-hint">Pick one to refine &amp; export</span>
-          </div>
-          <div class="car-stage">
-            <button class="car-arrow prev" id="carPrev" type="button" aria-label="Previous options">&#8249;</button>
-            <div class="car-viewport" id="carViewport"><div class="car-track" id="carTrack"></div></div>
-            <button class="car-arrow next" id="carNext" type="button" aria-label="More options">&#8250;</button>
-          </div>
-          <div class="car-dots" id="carDots"></div>
-        </section>
-
+        <!-- single full-width output; arrows page through the 5 generated options -->
         <figure class="cv-figure" id="figure" hidden>
-          <button class="back-options" id="backOptions" type="button">&#8249; All options</button>
-          <p class="cv-kicker" id="kicker" hidden></p>
           <figcaption class="cv-head" id="headline"></figcaption>
-          <div id="chart"></div>
+          <div class="pager" id="pager">
+            <button class="pg-arrow prev" id="pgPrev" type="button" aria-label="Previous option">&#8249;</button>
+            <div id="chart"></div>
+            <button class="pg-arrow next" id="pgNext" type="button" aria-label="Next option">&#8250;</button>
+          </div>
           <p class="cv-foot" id="foot">
             <span id="footmeta"></span>
             <span class="tag"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21V11M12 11C12 11 4 10 4 4C10 4 12 11 12 11ZM12 11C12 11 20 9 20 3C14 3 12 11 12 11Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Canopy</span>
@@ -485,6 +452,9 @@
       </div>
 
       <div class="export-bar" id="exportBar" hidden>
+        <label class="xtoggle" title="Export the chart with no background fill — chart elements only, on a transparent canvas">
+          <input type="checkbox" id="transparentBg"> Transparent background
+        </label>
         <button class="xbtn" id="copyBtn"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span id="copyLabel">Copy HTML</span></button>
         <button class="xbtn" id="svgBtn"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Download .svg</button>
         <button class="xbtn primary" id="downloadBtn"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Download .html</button>
@@ -1628,8 +1598,8 @@ function validateFor(type, data){
   return null;
 }
 
-// state for the 5-option carousel
-let CARDS = [], GEN = null;
+// state for the 5-option pager (one full-width chart at a time, arrow-navigated)
+let CARDS = [], GEN = null, curOpt = 0, navBusy = false;
 
 function generate(){
   syncColorUI();
@@ -1650,145 +1620,85 @@ function generate(){
   GEN = { data, insight };
   const choice = $('#charttype').value;
 
-  // Decide the five options.
+  // Build five options (navigated one-at-a-time, full width):
   //  • Auto  -> five genuinely different chart FORMS suited to this data shape
   //  • a specific type -> five colour/treatment VARIATIONS of that one form
   let recipes;
   if (choice === 'auto'){
-    recipes = pickAutoTypes(data, insight).map(t => ({
-      type:t, label: TYPE_NAMES[t]||t, note:'Auto-matched form', c: currentColors()
-    }));
+    recipes = pickAutoTypes(data, insight).map(t => ({ type:t, c: currentColors() }));
   } else {
     const want = TYPE_ALIAS[choice] || choice;
     const fits = !validateFor(want, data);
     const base = fits ? want : chooseChart(data, insight);
-    const tail = fits ? '' : ' · auto-fitted';
-    recipes = paletteVariants().map((v,i) => ({
-      type: base, label:'Variation '+(i+1), note: v.note + tail, c: v.c, labelKey: fits ? choice : base
-    }));
+    recipes = paletteVariants().map(v => ({ type: base, c: v.c }));
   }
   while (recipes.length && recipes.length < 5) recipes.push(recipes[recipes.length-1]);
-  recipes = recipes.slice(0,5);
-  CARDS = recipes;
+  CARDS = recipes.slice(0,5);
+  curOpt = 0; navBusy = false;
 
-  // switch the stage into carousel mode
+  // single full-width output panel
   $('#placeholder').hidden = true;
-  $('#figure').hidden = true;
-  $('#exportBar').hidden = true;
-  $('#backOptions').hidden = true;
-  $('#carousel').hidden = false;
-  $('#carTitle').textContent = (choice==='auto')
-    ? 'Five ways to show this'
-    : 'Five takes on ' + (TYPE_NAMES[choice]||choice);
-  det.innerHTML = '<b>5 options ready</b> · pick one to refine &amp; export';
+  $('#figure').hidden = false;
+  $('#exportBar').hidden = false;
 
-  // 1) lay down five skeleton slots immediately
-  const track = $('#carTrack'); track.innerHTML = '';
-  const cardEls = recipes.map((r,i) => {
-    const card = document.createElement('div');
-    card.className = 'cv-card is-loading'; card.dataset.idx = i;
-    card.innerHTML = '<div class="skel skel-label"></div><div class="skel skel-chart"></div><div class="skel skel-btn"></div>';
-    track.appendChild(card);
-    return card;
-  });
-  buildDots(5);
-  carIdx = 0;
-  setTimeout(applyCar, 0);
+  // constant headline + footnote (same data + insight across all five options)
+  $('#headline').textContent = insight || humanTitle(data, buildContext(data, CARDS[0].type, { c: CARDS[0].c }));
+  const numName = (data.columns.find(c=>c.type==='number')||{}).name || '';
+  const catName = (data.columns.filter(c=>c.type==='category'||c.type==='date')[0]||{}).name || '';
+  $('#footmeta').textContent = catName ? `${numName} by ${catName}` : numName;
+  det.innerHTML = '';                       // no meta-copy / no option labels
 
-  // 2) populate each card independently (staggered) — one failure never breaks the others
-  recipes.forEach((r,i) => {
-    setTimeout(() => {
-      try { renderCardInto(cardEls[i], data, insight, r, i); }
-      catch(e){ showCardError(cardEls[i], data, insight, r, i, e); }
-    }, 60 + i*110);
-  });
-
-  const navExp = $('#navExport'); if (navExp) navExp.disabled = true;
+  renderOption(0);                          // paint the first option…
+  pulseIn($('#chart'));                     // …with the settle-in animation
+  const navExp = $('#navExport'); if (navExp) navExp.disabled = false;
 }
 
-function renderCardInto(card, data, insight, recipe, idx){
-  const c = recipe.c;
-  card.classList.remove('is-loading');
-  card.style.setProperty('--card-bg', c.bg);
-  card.style.setProperty('--card-ink', c.ink);
-  card.style.setProperty('--card-accent', c.accent);
-  card.style.setProperty('--card-soft', c.inkSoft);
-  card.style.setProperty('--card-line', mix(c.ink, c.bg, 0.86));
-  card.innerHTML =
-    '<div class="card-label">' + escapeHTML(recipe.label) + '</div>' +
-    (recipe.note ? '<div class="card-note">' + escapeHTML(recipe.note) + '</div>' : '') +
-    '<div class="card-chart"></div>' +
-    '<button class="card-select" type="button">Select</button>';
-  const host = card.querySelector('.card-chart');
-  // scope css-var-driven svg classes (.cv-axis etc.) to this card's palette
-  host.style.setProperty('--ink', c.ink);
-  host.style.setProperty('--ink-soft', c.inkSoft);
-  host.style.setProperty('--accent', c.accent);
-  const W = Math.max(300, Math.min(host.clientWidth || 340, 460));
-  const ctx = buildContext(data, recipe.type, { c, W, still:true });
-  const svg = d3.select(host).append('svg');
-  RENDERERS[recipe.type](svg, ctx);
-  card.querySelector('.card-select').addEventListener('click', () => focusOption(idx));
-}
-
-function showCardError(card, data, insight, recipe, idx, err){
-  if (!card) return;
-  console.error('option '+idx+' failed', err);
-  card.classList.remove('is-loading');
-  card.innerHTML =
-    '<div class="card-label">' + escapeHTML(recipe.label) + '</div>' +
-    '<div class="card-error"><span>This form didn’t fit the data.</span>' +
-    '<button type="button">Try again</button></div>';
-  card.querySelector('button').addEventListener('click', () => {
-    card.classList.add('is-loading');
-    card.innerHTML = '<div class="skel skel-label"></div><div class="skel skel-chart"></div><div class="skel skel-btn"></div>';
-    try { renderCardInto(card, data, insight, recipe, idx); }
-    catch(e){ showCardError(card, data, insight, recipe, idx, e); }
-  });
-}
-
-// bring a chosen option into the full-width focused view + activate export
-function focusOption(idx){
+// render the option at idx into the single full-width slot and point exports at it
+function renderOption(idx){
   const r = CARDS[idx]; if (!r || !GEN) return;
+  curOpt = idx;
   stopAnims();
   const data = GEN.data, insight = GEN.insight, c = r.c;
   const ctx = buildContext(data, r.type, { c, still:false });
-  const svg = d3.select('#chart').html('').append('svg');
-  try { RENDERERS[r.type](svg, ctx); }
-  catch(e){ console.error(e); $('#detected').innerHTML = '<span class="err">Could not render this option.</span>'; return; }
+  const host = d3.select('#chart').html('');
+  try { RENDERERS[r.type](host.append('svg'), ctx); }
+  catch(e){ console.error(e); host.html('<div class="pg-error">This option couldn’t render — use the arrows to try another.</div>'); }
 
+  // the panel adopts this option's palette so dark + light variations stay legible
   const fig = $('#figure');
   fig.style.background = c.bg; fig.style.color = c.ink;
   fig.style.setProperty('--ink', c.ink);
   fig.style.setProperty('--ink-soft', c.inkSoft);
   fig.style.setProperty('--accent', c.accent);
+  fig.style.setProperty('--line', mix(c.ink, c.bg, 0.86));
   fig.style.borderColor = mix(c.ink, c.bg, 0.86);
 
-  $('#kicker').hidden = true;
-  $('#headline').textContent = insight || humanTitle(data, ctx);
   const numName = (data.columns.find(col=>col.type==='number')||{}).name || '';
   const catName = ctx.cat || '';
-  $('#footmeta').textContent = catName ? `${numName} by ${catName}` : numName;
-
-  $('#carousel').hidden = true;
-  fig.hidden = false;
-  $('#exportBar').hidden = false;
-  $('#backOptions').hidden = false;
-  const labelKey = r.labelKey || r.type;
-  $('#detected').innerHTML = `Form: <b>${TYPE_NAMES[labelKey]||r.label}</b>`;
   LAST = { data, type:r.type, insight, numName, catName, colors:c };
-  const navExp = $('#navExport'); if (navExp) navExp.disabled = false;
-  fig.scrollIntoView({behavior:'smooth', block:'nearest'});
+  $('#pgPrev').disabled = curOpt <= 0;
+  $('#pgNext').disabled = curOpt >= CARDS.length - 1;
 }
 
-function backToOptions(){
-  stopAnims();
-  $('#figure').hidden = true;
-  $('#exportBar').hidden = true;
-  $('#backOptions').hidden = true;
-  $('#carousel').hidden = false;
-  $('#detected').innerHTML = '<b>5 options ready</b> · pick one to refine &amp; export';
-  setTimeout(applyCar, 0);
+// weighted page-turn: outgoing fades + drifts, then incoming settles in (no overlap)
+function navTo(dir){
+  if (navBusy) return;
+  const next = curOpt + dir;
+  if (next < 0 || next >= CARDS.length) return;
+  navBusy = true;
+  const el = $('#chart');
+  el.classList.remove('pg-enter');
+  el.classList.add(dir > 0 ? 'pg-leave-next' : 'pg-leave-prev');
+  setTimeout(() => {
+    el.classList.remove('pg-leave-next','pg-leave-prev');
+    renderOption(next);
+    pulseIn(el);
+    setTimeout(() => { navBusy = false; }, 240);
+  }, 150);
+}
+function pulseIn(el){
+  el.classList.remove('pg-enter'); void el.offsetWidth; el.classList.add('pg-enter');
+  setTimeout(() => el.classList.remove('pg-enter'), 260);
 }
 
 function stopAnims(){
@@ -1796,7 +1706,6 @@ function stopAnims(){
   if (window.__cvTimer){ clearInterval(window.__cvTimer); window.__cvTimer = null; }
   if (window.__cvRaf){ cancelAnimationFrame(window.__cvRaf); window.__cvRaf = null; }
 }
-function escapeHTML(s){ return String(s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 
 // build a full colours object (matches currentColors()'s derived fields)
 function mkColors(bg, ink, accent){
@@ -1845,30 +1754,6 @@ function pickAutoTypes(data, insight){
   return out.slice(0,5);
 }
 
-/* ---------- carousel navigation (transform-based track, deterministic) ---------- */
-let carIdx = 0;
-function cardStep(){ const card = $('#carTrack').querySelector('.cv-card'); return card ? card.getBoundingClientRect().width + 18 : 360; }
-function maxShift(){ const tr=$('#carTrack'), vp=$('#carViewport'); return Math.max(0, tr.scrollWidth - vp.clientWidth); }
-function applyCar(){
-  const n = $('#carTrack').children.length; if (!n) return;
-  carIdx = Math.max(0, Math.min(carIdx, n-1));
-  const shift = Math.min(carIdx*cardStep(), maxShift());
-  $('#carTrack').style.transform = 'translateX(' + (-shift) + 'px)';
-  $('#carPrev').disabled = shift <= 1;
-  $('#carNext').disabled = shift >= maxShift() - 1;
-  $('#carDots').querySelectorAll('.dot').forEach((d,i)=> d.classList.toggle('on', i===carIdx));
-}
-function goToCard(i){ carIdx = i; applyCar(); }
-function buildDots(n){
-  const dots = $('#carDots'); dots.innerHTML='';
-  for (let i=0;i<n;i++){
-    const b = document.createElement('button');
-    b.className = 'dot' + (i===0?' on':''); b.type='button';
-    b.addEventListener('click', () => goToCard(i));
-    dots.appendChild(b);
-  }
-}
-
 function humanTitle(data, ctx){
   const numName=(data.columns.find(c=>c.type==='number')||{}).name||'Values';
   return ctx.cat ? `${numName} by ${ctx.cat}` : numName;
@@ -1890,6 +1775,8 @@ document.addEventListener('mouseout',hide);window.__cvHideTip=hide;})();`;
 function buildExportHTML(){
   if (!LAST) return '';
   const c = LAST.colors || currentColors();
+  const transp = !!($('#transparentBg') && $('#transparentBg').checked);
+  const pageBg = transp ? 'transparent' : c.bg;
   const svgEl = document.querySelector('#chart svg').cloneNode(true);
   const vb = svgEl.getAttribute('viewBox').split(' ');
   svgEl.setAttribute('width', vb[2]); svgEl.setAttribute('height', vb[3]);
@@ -1899,10 +1786,10 @@ function buildExportHTML(){
 
   const css = `:root{--bg:${c.bg};--ink:${c.ink};--accent:${c.accent};--accent2:${c.accent2}}
 *{box-sizing:border-box}
-body{margin:0;background:${c.bg};
+body{margin:0;background:${pageBg};
   font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:${c.ink};
   display:flex;justify-content:center;padding:40px 24px;-webkit-font-smoothing:antialiased}
-.cv-figure{background:${c.bg};max-width:880px;width:100%;padding:8px}
+.cv-figure{background:${pageBg};max-width:880px;width:100%;padding:8px}
 .cv-head{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:27px;line-height:1.18;
   letter-spacing:-.011em;margin:0 0 10px;max-width:30ch;color:${c.ink}}
 .cv-foot{display:flex;justify-content:space-between;font-size:11px;color:${mix(c.ink,c.bg,0.5)};margin:20px 0 0}
@@ -1950,10 +1837,13 @@ function buildSVGString(){
 .cv-draw{stroke-dashoffset:0!important}`;
   const style = document.createElementNS('http://www.w3.org/2000/svg','style');
   style.textContent = css;
-  const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
-  bg.setAttribute('x',0); bg.setAttribute('y',0);
-  bg.setAttribute('width',W); bg.setAttribute('height',H); bg.setAttribute('fill',c.bg);
-  svgEl.insertBefore(bg, svgEl.firstChild);
+  const transp = !!($('#transparentBg') && $('#transparentBg').checked);
+  if (!transp){
+    const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    bg.setAttribute('x',0); bg.setAttribute('y',0);
+    bg.setAttribute('width',W); bg.setAttribute('height',H); bg.setAttribute('fill',c.bg);
+    svgEl.insertBefore(bg, svgEl.firstChild);
+  }
   svgEl.insertBefore(style, svgEl.firstChild);
   return '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' + svgEl.outerHTML;
 }
@@ -2059,17 +1949,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if (splash){ splash.addEventListener('click', dismiss); setTimeout(dismiss, 2000); }
   })();
   syncColorUI();
-  const hasOutput = () => LAST || !$('#carousel').hidden;
+  const hasOutput = () => LAST || !$('#figure').hidden;
   $('#generate').addEventListener('click', generate);
   $('#charttype').addEventListener('change', ()=>{ if(hasOutput()) generate(); });
   ['hex-bg','hex-ink','hex-accent'].forEach(id=>{
     $('#'+id).addEventListener('input', ()=>{ syncColorUI(); if(hasOutput()) generate(); });
   });
-  // carousel controls
-  $('#carPrev').addEventListener('click', ()=> goToCard(carIdx-1));
-  $('#carNext').addEventListener('click', ()=> goToCard(carIdx+1));
-  $('#backOptions').addEventListener('click', backToOptions);
-  window.addEventListener('resize', ()=>{ if(!$('#carousel').hidden) applyCar(); });
+  // pager controls — page through the 5 generated options, one full-width chart at a time
+  $('#pgPrev').addEventListener('click', ()=> navTo(-1));
+  $('#pgNext').addEventListener('click', ()=> navTo(1));
   // chip click → colour-picker popover (native picker + hex field + close button)
   function closeColorPops(){ document.querySelectorAll('.cpop').forEach(p=>p.remove()); }
   function openColorPop(k, hex){
@@ -2113,9 +2001,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function resetTool(){
     stopAnims();
     $('#data').value=''; $('#insight').value=''; $('#charttype').value='auto';
-    $('#figure').hidden=true; $('#exportBar').hidden=true; $('#backOptions').hidden=true;
-    $('#carousel').hidden=true; $('#carTrack').innerHTML=''; $('#placeholder').hidden=false;
-    $('#detected').textContent=''; $('#chart').innerHTML=''; LAST=null; CARDS=[]; GEN=null;
+    $('#figure').hidden=true; $('#exportBar').hidden=true; $('#placeholder').hidden=false;
+    $('#detected').textContent=''; $('#chart').innerHTML=''; LAST=null; CARDS=[]; GEN=null; curOpt=0;
     $('#navExport').disabled=true;
     window.scrollTo({top:0, behavior:'smooth'});
   }
