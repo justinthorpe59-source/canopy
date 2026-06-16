@@ -104,7 +104,7 @@
   }
   .hero-lockup .byline{
     font-family:'Amatic SC','Archivo',-apple-system,BlinkMacSystemFont,sans-serif;font-style:italic;font-weight:700;
-    color:#FFFFFF;font-size:clamp(13px,1.8vw,17px);letter-spacing:1px;margin:8px 0 0;opacity:.95;
+    color:#FFFFFF;font-size:clamp(15px,2vw,19px);letter-spacing:1px;margin:8px 0 0;opacity:.95;
     text-shadow:0 1px 6px rgba(0,0,0,.5);
   }
   .hero-aside{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;gap:14px;padding-bottom:18px;transform:translate(-26px,32px)}
@@ -387,9 +387,51 @@
   .hist-meta .ts{font-size:10.5px;color:#999}
   .sb-clear{margin-top:12px;background:none;border:1px solid rgba(0,0,0,.16);color:#9a3b2e;font:inherit;font-size:12.5px;font-weight:600;border-radius:9px;padding:9px;cursor:pointer}
   .sb-clear:hover{background:rgba(154,59,46,.08);border-color:#9a3b2e}
+
+  /* Lightweight passphrase gate (NOT real security — see note in markup/JS) */
+  .gate{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(130% 130% at 50% 28%, #1c3a26, #0e2016);transition:opacity .42s ease}
+  .gate.hide{opacity:0;pointer-events:none}
+  .gate-card{text-align:center;width:86%;max-width:380px;padding:38px 32px 30px;border-radius:18px;
+    background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.2);
+    -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 44px 110px -44px rgba(0,0,0,.6)}
+  .gate-title{font-family:'Amatic SC','Archivo',-apple-system,BlinkMacSystemFont,sans-serif;font-weight:700;
+    text-transform:uppercase;color:#fff;font-size:66px;line-height:.9;letter-spacing:2px}
+  .gate-sub{font-family:'Fraunces',Georgia,'Times New Roman',serif;font-style:italic;color:rgba(255,255,255,.85);font-size:14px;margin:6px 0 22px}
+  .gate-form{display:flex;gap:9px}
+  .gate-form input{flex:1;min-width:0;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.32);
+    background:rgba(255,255,255,.94);color:#1a1a1a;font:inherit;font-size:14px}
+  .gate-form button{padding:12px 18px;border-radius:10px;border:none;background:var(--accent,#EA0027);color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .gate-form button:hover{filter:brightness(1.06)}
+  .gate-err{color:#ffb1a6;font-size:12.5px;margin-top:12px}
+  .gate-note{color:rgba(255,255,255,.5);font-size:11px;margin-top:18px}
+  @keyframes gateShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+  .gate.shake .gate-card{animation:gateShake .32s}
+
+  /* Honest status disclaimer (persistent page footer) */
+  .app-foot{max-width:1180px;margin:8px auto 28px;padding:0 30px;text-align:center;
+    font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.8);text-shadow:0 1px 4px rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
+  <!-- Lightweight shared-passphrase gate. NOTE: this is NOT real security — anyone can View Source
+       or open dev tools and read the passphrase / bypass it. It is only light friction so a shared
+       link isn't fully open to whoever stumbles on it, pending a proper access review. -->
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <div class="gate-title">Canopy</div>
+      <div class="gate-sub">Internal preview — enter the shared passphrase</div>
+      <form class="gate-form" id="gateForm">
+        <input type="password" id="gatePass" placeholder="Passphrase" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button type="submit">Enter</button>
+      </form>
+      <div class="gate-err" id="gateErr" hidden>Incorrect passphrase — try again.</div>
+      <div class="gate-note">Light access friction only — not secure.</div>
+    </div>
+  </div>
+  <script>/* hide the gate instantly (no flash) if this tab already unlocked it this session */
+    try{ if(sessionStorage.getItem('canopy.gate')==='ok'){ var g=document.getElementById('gate'); if(g) g.style.display='none'; } }catch(e){}</script>
+
   <div class="splash" id="splash">
     <div class="splash-inner">
       <div class="splash-title">Canopy</div>
@@ -617,6 +659,8 @@
       </div>
     </main>
   </div>
+
+  <footer class="app-foot">Personal project — not an officially sanctioned PA tool. No data leaves your browser.</footer>
 
   <!-- Feature 1: recent-outputs sidebar -->
   <aside class="sidebar" id="sidebar" aria-label="Recent outputs">
@@ -2484,6 +2528,29 @@ function advanceBg(){
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
+  // --- Lightweight shared-passphrase gate. NOT real security: the passphrase is in client-side
+  //     source, so anyone can View Source / use dev tools to read or bypass it. It is only light
+  //     friction for a shared internal link, pending a proper access review. ---
+  const GATE_PASS = 'canopy2026';   // ← shared internal passphrase; change this to whatever you circulate
+  (function gateInit(){
+    const gate=$('#gate'); if(!gate) return;
+    if(sessionStorage.getItem('canopy.gate')==='ok'){ gate.style.display='none'; return; }
+    gate.style.display='flex';
+    const form=$('#gateForm'), pass=$('#gatePass'), err=$('#gateErr');
+    if(pass) setTimeout(()=>{ try{ pass.focus(); }catch(e){} }, 60);
+    if(form) form.addEventListener('submit', e=>{
+      e.preventDefault();
+      if((pass.value||'')===GATE_PASS){
+        try{ sessionStorage.setItem('canopy.gate','ok'); }catch(e){}
+        gate.classList.add('hide');
+        setTimeout(()=>{ gate.style.display='none'; }, 440);
+      } else {
+        if(err) err.hidden=false; pass.select();
+        gate.classList.add('shake'); setTimeout(()=>gate.classList.remove('shake'), 360);
+      }
+    });
+  })();
+
   // --- per-session: random full-bleed background (shared by splash + page) and random palette ---
   (function initSession(){
     // Feature 5: random starting image (splash + page use it); rotation begins after load.
