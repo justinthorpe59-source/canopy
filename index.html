@@ -2146,22 +2146,26 @@ function applyFormatPreview(){
 const PAL_KEY='canopy.palettes';
 // Standing brand default — populated on load and the default for new projects.
 const PA_PAL = {name:'PA Consulting', bg:'#FFFFFF', ink:'#00172D', accent:'#EA0027'};
-const DEFAULT_PALS=[
-  PA_PAL,
+const DEFAULT_PALS=[ PA_PAL ];   // PA Consulting is the ONLY pre-built palette that ships
+// Palettes Canopy used to ship pre-built (the old curated set) — stripped from existing users'
+// saved lists. Matched by name + exact values, so a user's own re-coloured/renamed palette is kept.
+const SHIPPED_LEGACY_PALS=[
   {name:'Canopy default', bg:'#F5F0E8', ink:'#1A1A1A', accent:'#C4614A'},
   {name:'Dark mode',      bg:'#14241B', ink:'#E7E0CE', accent:'#F2792B'},
   {name:'Monochrome',     bg:'#F4F1EA', ink:'#1A1A1A', accent:'#1A1A1A'},
-  // the previously random-only curated pool, now surfaced as clickable swatches
   ...PALETTES.map(p=>({name:p.name, bg:p.bg, ink:p.ink, accent:p.accent}))
 ];
 function getPalettes(){
   let p=LS.get(PAL_KEY,null);
   if(!p){ p=DEFAULT_PALS.slice(); LS.set(PAL_KEY,p); }
-  // one-time migration so existing users gain PA Consulting + the surfaced curated palettes (and keep their own saved ones)
-  if((LS.get('canopy.palMig',0)||0) < 2){
-    DEFAULT_PALS.forEach(d=>{ if(!p.some(x=>x.name===d.name)) p.push(d); });
-    const i=p.findIndex(x=>x.name==='PA Consulting'); if(i>0) p.unshift(p.splice(i,1)[0]);  // keep PA first
-    LS.set(PAL_KEY,p); LS.set('canopy.palMig',2);
+  // one-time migration: remove the old pre-built defaults, keep PA Consulting + the user's own saved palettes
+  if((LS.get('canopy.palMig',0)||0) < 3){
+    const eq=(a,b)=>String(a).toUpperCase()===String(b).toUpperCase();
+    const isLegacy=x=>SHIPPED_LEGACY_PALS.some(s=>s.name===x.name && eq(s.bg,x.bg) && eq(s.ink,x.ink) && eq(s.accent,x.accent));
+    p=p.filter(x=>!isLegacy(x));
+    if(!p.some(x=>x.name==='PA Consulting')) p.unshift(PA_PAL);
+    else { const i=p.findIndex(x=>x.name==='PA Consulting'); if(i>0) p.unshift(p.splice(i,1)[0]); }
+    LS.set(PAL_KEY,p); LS.set('canopy.palMig',3);
   }
   return p;
 }
@@ -2244,6 +2248,31 @@ function createProject(name, lockPalette, lockFormat, note){
     palette: lockPalette ? { bg:$('#hex-bg').value, ink:$('#hex-ink').value, accent:$('#hex-accent').value } : null,
     format: lockFormat ? currentFormat() : 'deck', charts:[], created:Date.now() };
   ps.push(p); saveProjects(ps); setActiveProject(p.id);
+}
+// Seed ONE pre-populated demo project (once) so the Projects panel + sidebar can be seen working.
+// It is NOT made active — the user starts on their own default project and can switch to / delete this.
+function seedDemoProject(){
+  if(LS.get('canopy.demoSeeded', false)) return;
+  LS.set('canopy.demoSeeded', true);
+  // its own locked palette, distinct from the PA default — navy / gold / coral
+  const palette={ bg:'#13233D', ink:'#C9A227', accent:'#FF6B5C' };
+  const colors=mkColors(palette.bg, palette.ink, palette.accent);
+  // two of the built-in example datasets, thematically suited to a banking review
+  const picks=[
+    EXAMPLES.find(e=>/^Bank, Satisfaction/.test(e.data)),
+    EXAMPLES.find(e=>/^Quarter, Investment/.test(e.data))
+  ].filter(Boolean);
+  const now=Date.now(), H=3600*1000;
+  const charts=picks.map((ex,i)=>{
+    let type='radial';
+    try { type=chooseChart(parseInput(ex.data), ex.insight); } catch(e){}
+    return { id:uid(), ts: now - (i===0 ? 5*H : 3*H), insight:ex.insight, type,
+      format:'deck', data:ex.data, colors:Object.assign({},colors), refined:false };
+  }).sort((a,b)=>b.ts-a.ts);   // newest first, like real history
+  const ps=getProjects();
+  ps.push({ id:uid(), name:'Example: Barclays Q3 Review', note:'UK retail banking audience, board level',
+    palette, format:'deck', charts, created: now - 8*H });
+  saveProjects(ps);
 }
 function renameProject(id,name){ const ps=getProjects(); const p=ps.find(x=>x.id===id); if(p && name && name.trim()){ p.name=name.trim(); saveProjects(ps); renderProjectUI(); } }
 function deleteProject(id){
@@ -2595,6 +2624,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
   $('#projNote').addEventListener('change', ()=>{ updateActiveProject(p=>{ p.note=$('#projNote').value; }); });
   document.addEventListener('click', e=>{ if(!e.target.closest('.proj-bar')){ const m=$('#projMenu'); if(m) m.hidden=true; } });
+  seedDemoProject();
   renderProjectUI();
   renderHistory();
 
