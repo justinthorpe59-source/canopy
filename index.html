@@ -337,6 +337,8 @@
   .palchip .nm{cursor:pointer;font-weight:600;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .palchip .del{background:none;border:none;color:#a08;color:#9a3b2e;cursor:pointer;font-size:14px;line-height:1;padding:0 4px}
   .palchip .del:hover{color:#d7402f}
+  .palchip.active{background:#fff;border-color:transparent;box-shadow:0 0 0 2px var(--accent,#C4614A)}
+  .palchip.active .nm{font-weight:700}
 
   /* F2: refine box + refined badge */
   .refine-box{width:100%;max-width:860px;margin:14px 0 0;align-self:flex-start}
@@ -677,6 +679,7 @@ function syncColorUI(){
   document.documentElement.style.setProperty('--accent', c.accent);
   document.documentElement.style.setProperty('--accent2', c.accent2);
   document.documentElement.style.setProperty('--ink-soft', c.inkSoft);
+  if (typeof updatePaletteActive === 'function') updatePaletteActive();   // keep the active palette chip in sync
 }
 
 /* ---------- data parsing ---------- */
@@ -2141,12 +2144,27 @@ function applyFormatPreview(){
 
 /* ---- saved palettes (Feature 1) ---- */
 const PAL_KEY='canopy.palettes';
+// Standing brand default — populated on load and the default for new projects.
+const PA_PAL = {name:'PA Consulting', bg:'#FFFFFF', ink:'#00172D', accent:'#EA0027'};
 const DEFAULT_PALS=[
+  PA_PAL,
   {name:'Canopy default', bg:'#F5F0E8', ink:'#1A1A1A', accent:'#C4614A'},
   {name:'Dark mode',      bg:'#14241B', ink:'#E7E0CE', accent:'#F2792B'},
-  {name:'Monochrome',     bg:'#F4F1EA', ink:'#1A1A1A', accent:'#1A1A1A'}
+  {name:'Monochrome',     bg:'#F4F1EA', ink:'#1A1A1A', accent:'#1A1A1A'},
+  // the previously random-only curated pool, now surfaced as clickable swatches
+  ...PALETTES.map(p=>({name:p.name, bg:p.bg, ink:p.ink, accent:p.accent}))
 ];
-function getPalettes(){ let p=LS.get(PAL_KEY,null); if(!p){ p=DEFAULT_PALS.slice(); LS.set(PAL_KEY,p);} return p; }
+function getPalettes(){
+  let p=LS.get(PAL_KEY,null);
+  if(!p){ p=DEFAULT_PALS.slice(); LS.set(PAL_KEY,p); }
+  // one-time migration so existing users gain PA Consulting + the surfaced curated palettes (and keep their own saved ones)
+  if((LS.get('canopy.palMig',0)||0) < 2){
+    DEFAULT_PALS.forEach(d=>{ if(!p.some(x=>x.name===d.name)) p.push(d); });
+    const i=p.findIndex(x=>x.name==='PA Consulting'); if(i>0) p.unshift(p.splice(i,1)[0]);  // keep PA first
+    LS.set(PAL_KEY,p); LS.set('canopy.palMig',2);
+  }
+  return p;
+}
 function savePalette(name){
   name=(name||'').trim(); if(!name) return;
   const p=getPalettes();
@@ -2165,12 +2183,23 @@ function renderPalettes(){
   wrap.innerHTML='';
   getPalettes().forEach(pal=>{
     const chip=document.createElement('div'); chip.className='palchip'; chip.title=pal.name+' — click to apply';
+    chip._pal=pal;
     chip.innerHTML='<span class="sw" style="background:linear-gradient(135deg,'+pal.bg+' 0 38%,'+pal.ink+' 38% 68%,'+pal.accent+' 68% 100%)"></span>'+
       '<span class="nm">'+escAttr(pal.name)+'</span><button class="del" title="Delete palette" aria-label="Delete">&times;</button>';
     chip.querySelector('.sw').addEventListener('click',()=>applyPalette(pal));
     chip.querySelector('.nm').addEventListener('click',()=>applyPalette(pal));
     chip.querySelector('.del').addEventListener('click',e=>{ e.stopPropagation(); deletePalette(pal.name); });
     wrap.appendChild(chip);
+  });
+  updatePaletteActive();
+}
+// highlight the saved-palette chip whose values match the current hex fields
+function updatePaletteActive(){
+  const norm=v=>String(v||'').trim().toUpperCase();
+  const bg=norm($('#hex-bg').value), ink=norm($('#hex-ink').value), acc=norm($('#hex-accent').value);
+  document.querySelectorAll('#savedPals .palchip').forEach(ch=>{
+    const p=ch._pal; const on = p && norm(p.bg)===bg && norm(p.ink)===ink && norm(p.accent)===acc;
+    ch.classList.toggle('active', !!on);
   });
 }
 function startSavePalette(){
@@ -2201,8 +2230,9 @@ function setActiveProject(id){
   LS.set(ACTIVE_KEY,id);
   const p=activeProject(); if(!p) return;
   // Visual consistency (F4): a locked palette wins; else inherit the established style from
-  // this project's existing charts so subsequent generations match. User can still override.
-  const seed = p.palette || (p.charts && p.charts.length && p.charts[0].colors);
+  // this project's existing charts so subsequent generations match; else fall back to PA Consulting
+  // (the standing default — no random selection). User can still override.
+  const seed = p.palette || (p.charts && p.charts.length && p.charts[0].colors) || PA_PAL;
   if(seed){ $('#hex-bg').value=seed.bg; $('#hex-ink').value=seed.ink; $('#hex-accent').value=seed.accent; syncColorUI(); }
   if(p.format && $('#formatSel')){ $('#formatSel').value=p.format; applyOutputScaling(CARDS[curOpt]); }
   HIST_ID=null;
@@ -2436,10 +2466,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const sp = document.getElementById('splash'); if (sp) sp.style.backgroundImage = url;
     }
     startBgRotation(startIdx);
-    // Feature 4: active project's locked palette wins; otherwise a random curated palette.
+    // Active project's locked palette wins; otherwise the PA Consulting default (no more random selection).
     const proj = activeProject();
-    if (proj && proj.palette){ $('#hex-bg').value=proj.palette.bg; $('#hex-ink').value=proj.palette.ink; $('#hex-accent').value=proj.palette.accent; }
-    else { const pal = PALETTES[Math.floor(Math.random()*PALETTES.length)]; if (pal){ $('#hex-bg').value = pal.bg; $('#hex-ink').value = pal.ink; $('#hex-accent').value = pal.accent; } }
+    const startPal = (proj && proj.palette) ? proj.palette : PA_PAL;
+    $('#hex-bg').value=startPal.bg; $('#hex-ink').value=startPal.ink; $('#hex-accent').value=startPal.accent;
     if (proj && proj.format && $('#formatSel')) $('#formatSel').value = proj.format;
     const splash = document.getElementById('splash');
     function dismiss(){
