@@ -103,8 +103,8 @@
     text-shadow:0 1px 8px rgba(0,0,0,.5);
   }
   .hero-lockup .byline{
-    font-family:'Fraunces',Georgia,'Times New Roman',serif;font-style:italic;font-weight:400;
-    color:#FFFFFF;font-size:clamp(15px,2.1vw,20px);margin:10px 0 0;opacity:.95;
+    font-family:'Amatic SC','Archivo',-apple-system,BlinkMacSystemFont,sans-serif;font-style:italic;font-weight:700;
+    color:#FFFFFF;font-size:clamp(13px,1.8vw,17px);letter-spacing:1px;margin:8px 0 0;opacity:.95;
     text-shadow:0 1px 6px rgba(0,0,0,.5);
   }
   .hero-aside{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;gap:14px;padding-bottom:18px;transform:translate(-26px,32px)}
@@ -241,7 +241,7 @@
 
   /* ---- export-bar transparent-background toggle ---- */
   .xtoggle{margin-right:auto;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
-    font-size:12.5px;font-weight:600;color:var(--ink);user-select:none}
+    font-size:12.5px;font-weight:600;color:#FFFFFF;user-select:none;text-shadow:0 1px 4px rgba(0,0,0,.45)}
   .xtoggle input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;margin:0}
 
   /* ---- single-chart pager (one option at a time, full width; arrows page) ---- */
@@ -283,8 +283,7 @@
 
   /* ===== Round 9 features ===== */
   /* F5: two crossfading background layers */
-  .bg-layer{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat}
-  #bgFront{opacity:0;transition:opacity 3s ease-in-out}
+  .bg-layer{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat;opacity:1;will-change:opacity}
 
   /* F4: projects bar in nav */
   .nav{justify-content:space-between}
@@ -301,13 +300,24 @@
   .pm-head{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a8a8a;margin:2px 2px 8px}
   .proj-row{display:flex;align-items:center;gap:4px;border-radius:9px;padding:2px}
   .proj-row.active{background:rgba(196,97,74,.12)}
-  .proj-row .proj-pick{flex:1;text-align:left;background:none;border:none;font:inherit;font-size:13.5px;font-weight:600;color:#1a1a1a;cursor:pointer;padding:8px 8px;border-radius:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .proj-row .proj-pick{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+    text-align:left;background:none;border:none;font:inherit;color:#1a1a1a;cursor:pointer;padding:9px 9px;border-radius:7px}
   .proj-row .proj-pick:hover{background:rgba(0,0,0,.05)}
+  .pr-top{display:flex;align-items:center;gap:6px;max-width:100%}
+  .pr-check{color:var(--accent,#C4614A);font-weight:700;font-size:12px;line-height:1}
+  .pr-name{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pr-sub{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .pr-sw{display:inline-flex;gap:3px}
+  .pr-sw i{width:11px;height:11px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+  .pr-meta{font-size:11px;color:#6a6a6a}
+  .pr-edited{font-size:11px;color:#a6a6a6}
+  .proj-row-actions{display:flex;align-items:center;flex:0 0 auto}
   .proj-row .proj-ren,.proj-row .proj-del{background:none;border:none;cursor:pointer;color:#8a8a8a;font-size:14px;padding:6px 7px;border-radius:6px}
   .proj-row .proj-ren:hover,.proj-row .proj-del:hover{background:rgba(0,0,0,.07);color:#1a1a1a}
   .pm-new{width:100%;text-align:left;margin-top:8px;background:none;border:none;border-top:1px solid rgba(0,0,0,.08);
     padding:10px 6px 4px;font:inherit;font-size:13px;font-weight:600;color:var(--accent,#C4614A);cursor:pointer}
   .pm-new-form{display:flex;flex-direction:column;gap:8px;padding:6px 4px 4px}
+  .pm-new-form[hidden]{display:none}
   .pm-new-form input[type=text]{padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit;font-size:13px;color:#000;background:#fff}
   .pm-new-form label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#333;cursor:pointer}
   .pm-actions{display:flex;gap:8px;margin-top:2px}
@@ -382,7 +392,6 @@
     <div class="splash-inner">
       <div class="splash-title">Canopy</div>
       <div class="splash-strap">Data worth looking at.</div>
-      <div class="splash-by">by Justin Thorpe</div>
     </div>
   </div>
   <div class="page-bg" id="pageBg" aria-hidden="true">
@@ -2219,14 +2228,35 @@ function renderProjectUI(){
   const note=$('#projNote'); if(note && document.activeElement!==note) note.value=p.note||'';
   const list=$('#projList');
   if(list){
+    const relTime = ts=>{ const s=(Date.now()-ts)/1000;
+      if(s<60) return 'just now'; if(s<3600) return Math.floor(s/60)+'m ago';
+      if(s<86400) return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago'; };
+    const many = getProjects().length>1;
     list.innerHTML='';
     getProjects().forEach(pr=>{
-      const row=document.createElement('div'); row.className='proj-row'+(pr.id===p.id?' active':'');
-      row.innerHTML='<button class="proj-pick" title="Switch to this project">'+escAttr(pr.name)+'</button>'+
-        '<button class="proj-ren" title="Rename" aria-label="Rename">✎</button>'+
-        (getProjects().length>1?'<button class="proj-del" title="Delete" aria-label="Delete">&times;</button>':'');
+      const isActive = pr.id===p.id;
+      const n = pr.charts ? pr.charts.length : 0;
+      const fmtLabel = (FORMATS[pr.format]||FORMATS.deck).label;
+      const lastTs = n ? Math.max.apply(null, pr.charts.map(c=>c.ts)) : (pr.created||Date.now());
+      const swHTML = pr.palette
+        ? '<span class="pr-sw"><i style="background:'+pr.palette.bg+'"></i><i style="background:'+pr.palette.ink+'"></i><i style="background:'+pr.palette.accent+'"></i></span>'
+        : '';
+      const metaBits=[]; if(n){ metaBits.push(n+' chart'+(n===1?'':'s')); metaBits.push(fmtLabel); }
+      const metaHTML = metaBits.length ? '<span class="pr-meta">'+metaBits.join(' · ')+'</span>' : '';
+      const editedHTML = n ? '<span class="pr-edited">Edited '+relTime(lastTs)+'</span>' : '';
+      const subHTML = (swHTML||metaHTML||editedHTML) ? '<span class="pr-sub">'+swHTML+metaHTML+editedHTML+'</span>' : '';
+      const row=document.createElement('div'); row.className='proj-row'+(isActive?' active':'');
+      row.innerHTML=
+        '<button class="proj-pick" title="Switch to this project">'+
+          '<span class="pr-top">'+(isActive?'<span class="pr-check" aria-label="Active">✓</span>':'')+'<span class="pr-name">'+escAttr(pr.name)+'</span></span>'+
+          subHTML+
+        '</button>'+
+        '<span class="proj-row-actions">'+
+          '<button class="proj-ren" title="Rename" aria-label="Rename">✎</button>'+
+          (many?'<button class="proj-del" title="Delete" aria-label="Delete">&times;</button>':'')+
+        '</span>';
       row.querySelector('.proj-pick').addEventListener('click',()=>{ setActiveProject(pr.id); $('#projMenu').hidden=true; });
-      row.querySelector('.proj-ren').addEventListener('click',e=>{ e.stopPropagation(); const n=prompt('Rename project', pr.name); if(n) renameProject(pr.id,n); });
+      row.querySelector('.proj-ren').addEventListener('click',e=>{ e.stopPropagation(); const nn=prompt('Rename project', pr.name); if(nn) renameProject(pr.id,nn); });
       const del=row.querySelector('.proj-del'); if(del) del.addEventListener('click',e=>{ e.stopPropagation(); if(confirm('Delete project "'+pr.name+'" and its history?')) deleteProject(pr.id); });
       list.appendChild(row);
     });
@@ -2347,8 +2377,18 @@ function closeSidebar(){ const s=$('#sidebar'); if(s) s.classList.remove('open')
 function toggleSidebar(){ const s=$('#sidebar'); if(!s) return; s.classList.toggle('open'); if(s.classList.contains('open')) renderHistory(); }
 
 /* ---- continuously rotating background (Feature 5) ---- */
-let bgOrder=[], bgPos=0, bgTimer=null;
-function setBothBg(url){ const u='url("'+url+'")'; ['#bgBack','#bgFront'].forEach(id=>{ const e=$(id); if(e) e.style.backgroundImage=u; }); const f=$('#bgFront'); if(f) f.style.opacity='0'; }
+let bgOrder=[], bgPos=0, bgTimer=null, bgTopIsBack=true;
+// Both layers stay fully OPAQUE and always hold an image. The visible (top) layer fades 1→0 over 3s
+// to reveal the incoming image sitting fully painted beneath it, then the roles swap. Because the
+// bottom layer is opaque the whole time, the page's fallback colour is never visible — no flash.
+function setBothBg(url){
+  const u='url("'+url+'")';
+  const A=$('#bgBack'), B=$('#bgFront');
+  if(A){ A.style.transition='none'; A.style.backgroundImage=u; A.style.opacity='1'; A.style.zIndex='2'; }
+  if(B){ B.style.transition='none'; B.style.backgroundImage=u; B.style.opacity='1'; B.style.zIndex='1'; }
+  bgTopIsBack=true;                                          // #bgBack is the visible (top) layer
+  if(A) void A.offsetWidth;
+}
 function startBgRotation(startIdx){
   if(!BG_IMAGES || BG_IMAGES.length<=1) return;            // single image → no cycling, silently
   bgOrder=[]; for(let i=0;i<BG_IMAGES.length;i++) bgOrder.push((startIdx+i)%BG_IMAGES.length);
@@ -2357,18 +2397,31 @@ function startBgRotation(startIdx){
   bgTimer=setInterval(advanceBg, 75000);                   // every 75s
 }
 function advanceBg(){
-  const front=$('#bgFront'), back=$('#bgBack'); if(!front||!back) return;
+  const A=$('#bgBack'), B=$('#bgFront'); if(!A||!B||bgOrder.length<=1) return;
   bgPos=(bgPos+1)%bgOrder.length;
   const img=BG_IMAGES[bgOrder[bgPos]];
-  // transition is on `opacity` only, so setting the image then opacity=1 crossfades over 3s
-  front.style.transition='';                                 // ensure the 3s transition is active
-  front.style.backgroundImage='url("'+img+'")';
-  front.style.opacity='1';                                   // 0 → 1 over 3s (CSS)
+  const top    = bgTopIsBack ? A : B;                        // currently visible — will fade out
+  const bottom = bgTopIsBack ? B : A;                        // hidden — receives next, stays opaque
+  // 1) paint the incoming image onto the hidden bottom layer (opaque, behind the top) and COMMIT it
+  bottom.style.transition='none';
+  bottom.style.backgroundImage='url("'+img+'")';
+  bottom.style.opacity='1';
+  bottom.style.zIndex='1';
+  void bottom.offsetWidth;                                   // force it to paint before we fade
+  // 2) fade the visible top layer out over 3s → the opaque bottom (next image) is revealed
+  top.style.zIndex='2';
+  top.style.transition='opacity 3s ease-in-out';
+  void top.offsetWidth;
+  top.style.opacity='0';
+  // 3) once faded, the bottom IS the new visible layer; reset the old top (hidden) and swap roles
   setTimeout(()=>{
-    back.style.backgroundImage='url("'+img+'")';             // promote incoming to base
-    front.style.transition='none'; front.style.opacity='0';  // reset front invisibly (no visible fade-out)
-    void front.offsetWidth; front.style.transition='';
-  }, 3200);
+    bottom.style.zIndex='2';
+    top.style.transition='none';
+    top.style.zIndex='1';
+    top.style.opacity='1';                                   // reset opaque, invisible behind bottom
+    void top.offsetWidth;
+    bgTopIsBack=!bgTopIsBack;
+  }, 3050);
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
