@@ -357,9 +357,21 @@
     letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:20px;z-index:4}
   .cv-figure{position:relative}
 
-  /* F3: output format aspect-ratio preview */
-  #chart{aspect-ratio:var(--fmt,16/9);display:flex;align-items:center;justify-content:center}
+  /* F3: output format aspect-ratio preview — output area ~40% taller (R15 item 1) */
+  #chart{aspect-ratio:calc(var(--fmt,1.7778) / 1.4);display:flex;align-items:center;justify-content:center}
   #chart > svg{width:auto;height:auto;max-width:100%;max-height:100%}
+
+  /* R15 item 2: Animated / Static toggle + static-mode overrides */
+  .mode-toggle{display:inline-flex;border:1px solid var(--line,rgba(0,0,0,.14));border-radius:9px;overflow:hidden;margin:0 0 14px}
+  .mode-toggle .mt-btn{background:transparent;border:none;font-family:inherit;font-size:11.5px;font-weight:600;color:var(--ink-soft,#8a8a8a);padding:6px 14px;cursor:pointer;transition:.15s}
+  .mode-toggle .mt-btn:hover{color:var(--ink,#1a1a1a)}
+  .mode-toggle .mt-btn.active{background:var(--accent,#C4614A);color:#fff}
+  .cv-figure.static .cv-in{opacity:1!important;animation:none!important}
+  .cv-figure.static .cv-draw{stroke-dashoffset:0!important;animation:none!important}
+  .cv-figure.static .cv-mark{transition:none!important}
+  .cv-figure.static:hover .cv-mark:not(:hover){opacity:1!important}
+  .cv-figure.static #chart.pg-enter,.cv-figure.static #chart.pg-leave-next,.cv-figure.static #chart.pg-leave-prev{animation:none!important}
+  .cv-staticlabel{font-variant-numeric:tabular-nums;pointer-events:none}
 
   /* F1: recent-outputs sidebar */
   .sidebar{position:fixed;top:0;right:0;height:100vh;width:300px;max-width:86vw;z-index:60;
@@ -542,6 +554,14 @@
         <label for="charttype">Chart form</label>
         <select id="charttype">
           <option value="auto">Auto — let Canopy choose</option>
+          <optgroup label="Consulting essentials">
+            <option value="waterfall">Waterfall chart</option>
+            <option value="bcg">BCG quadrant / matrix</option>
+            <option value="stacked100">100% stacked bar</option>
+            <option value="heatmatrix">Heat matrix</option>
+            <option value="gantt">Gantt / milestone timeline</option>
+            <option value="funnel">Funnel chart</option>
+          </optgroup>
           <optgroup label="Compare values">
             <option value="slope">Slope chart</option>
             <option value="dumbbell">Dumbbell chart</option>
@@ -564,6 +584,8 @@
             <option value="marimekko">Marimekko / Mosaic</option>
             <option value="unit">Unit / Pictogram chart</option>
             <option value="pack">Circle packing</option>
+            <option value="proparea">Proportional area</option>
+            <option value="pictogram">Pictogram / unit chart</option>
           </optgroup>
           <optgroup label="Change over time">
             <option value="bump">Bump chart</option>
@@ -579,6 +601,7 @@
             <option value="network">Network diagram</option>
             <option value="parallel">Parallel coordinates</option>
             <option value="alluvial">Alluvial diagram</option>
+            <option value="flow">Simplified flow diagram</option>
           </optgroup>
           <optgroup label="Creative &amp; editorial">
             <option value="constellation">Constellation scatter</option>
@@ -592,6 +615,9 @@
             <option value="voronoi">Voronoi</option>
             <option value="isobar">Isometric bar</option>
             <option value="propcircles">Proportional circles</option>
+            <option value="bubblematrix">Bubble matrix</option>
+            <option value="proptimeline">Proportional timeline</option>
+            <option value="rankeddotgrid">Ranked dot grid</option>
           </optgroup>
         </select>
       </div>
@@ -624,6 +650,10 @@
         <!-- single full-width output; arrows page through the 5 generated options -->
         <figure class="cv-figure" id="figure" hidden>
           <span class="refined-badge" id="refinedBadge" hidden>Refined</span>
+          <div class="mode-toggle" id="modeToggle" role="group" aria-label="Animation mode">
+            <button type="button" class="mt-btn active" data-mode="animated">Animated</button>
+            <button type="button" class="mt-btn" data-mode="static">Static</button>
+          </div>
           <figcaption class="cv-head" id="headline"></figcaption>
           <div class="pager" id="pager">
             <button class="pg-arrow prev" id="pgPrev" type="button" aria-label="Previous option">&#8249;</button>
@@ -632,7 +662,6 @@
           </div>
           <p class="cv-foot" id="foot">
             <span id="footmeta"></span>
-            <span class="tag"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21V11M12 11C12 11 4 10 4 4C10 4 12 11 12 11ZM12 11C12 11 20 9 20 3C14 3 12 11 12 11Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Canopy</span>
           </p>
         </figure>
       </div>
@@ -659,7 +688,6 @@
     </main>
   </div>
 
-  <footer class="app-foot">Personal project — not an officially sanctioned PA tool.</footer>
 
   <!-- Feature 1: recent-outputs sidebar -->
   <aside class="sidebar" id="sidebar" aria-label="Recent outputs">
@@ -738,11 +766,53 @@ function parseNum(v){
   return +s;
 }
 function isNumeric(v){ return !isNaN(parseNum(v)); }
-function isDateLike(v){
-  const s = String(v).trim();
-  return /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(s) ||
-         /^\d{4}-\d{1,2}(-\d{1,2})?$/.test(s) ||
-         /^q[1-4]/i.test(s);
+// ---- proper date detection (R15 item 5): returns {t:timestamp, gran} or null ----
+const MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const cap = s => s.replace(/^./, c => c.toUpperCase());
+function parseDate(v){
+  if (v == null) return null;
+  const s = String(v).trim(); if (!s) return null;
+  let m;
+  // ISO: YYYY-MM-DD or YYYY-MM
+  if ((m = s.match(/^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/))){
+    const y=+m[1], mo=+m[2]-1, d=m[3]?+m[3]:1;
+    if (mo>=0&&mo<12&&d>=1&&d<=31) return { t:Date.UTC(y,mo,d), gran:m[3]?'day':'month' };
+  }
+  // Quarter: Q1 2024 / Q1/24 / Q1-24 / 2024 Q1 / 2024-Q1
+  if ((m = s.match(/^q([1-4])[\s\/\-]*(\d{2,4})$/i)) || (m = s.match(/^(\d{4})[\s\/\-]*q([1-4])$/i))){
+    let q, y;
+    if (/^q/i.test(s)){ q=+m[1]; y=+m[2]; } else { y=+m[1]; q=+m[2]; }
+    if (y<100) y+=2000;
+    if (q>=1&&q<=4) return { t:Date.UTC(y,(q-1)*3,1), gran:'quarter' };
+  }
+  // Month name: Jan 2024 / January 2024 / Jan-24 / Jan/2024
+  if ((m = s.match(/^([a-z]{3,9})[\s\/\-]+(\d{2,4})$/i))){
+    const mi = MONTHS.indexOf(m[1].slice(0,3).toLowerCase());
+    if (mi>=0){ let y=+m[2]; if (y<100) y+=2000; return { t:Date.UTC(y,mi,1), gran:'month' }; }
+  }
+  // DD/MM/YYYY or D/M/YY (UK priority); MM/DD only when unambiguous (a>12)
+  if ((m = s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})$/))){
+    let a=+m[1], b=+m[2], y=+m[3]; if (y<100) y+=2000;
+    let day, mo;
+    if (a>12 && b<=12){ day=a; mo=b; }        // unambiguous DD/MM
+    else if (b>12 && a<=12){ mo=a; day=b; }   // unambiguous MM/DD (US)
+    else { day=a; mo=b; }                      // ambiguous → UK DD/MM
+    if (mo>=1&&mo<=12&&day>=1&&day<=31) return { t:Date.UTC(y,mo-1,day), gran:'day' };
+  }
+  // Year only: 4-digit 1900–2099
+  if ((m = s.match(/^(\d{4})$/))){
+    const y=+m[1]; if (y>=1900&&y<=2099) return { t:Date.UTC(y,0,1), gran:'year' };
+  }
+  return null;
+}
+function isDateLike(v){ return !!parseDate(v); }
+function isYearVal(v){ const p=parseDate(v); return !!(p && p.gran==='year'); }
+function fmtDateLabel(t, gran){
+  const d = new Date(t), y = d.getUTCFullYear();
+  if (gran==='year')    return '' + y;
+  if (gran==='quarter') return 'Q' + (Math.floor(d.getUTCMonth()/3)+1) + ' ' + y;
+  if (gran==='month')   return cap(MONTHS[d.getUTCMonth()]) + ' ' + y;
+  return d.getUTCDate() + ' ' + cap(MONTHS[d.getUTCMonth()]);   // day
 }
 
 function splitLineToCells(text){
@@ -793,21 +863,43 @@ function cellsToData(rows){
 
   const columns = header.map((name,i) => {
     const vals = body.map(r => r[i]).filter(v => String(v).trim()!=='');
-    const numShare = vals.filter(isNumeric).length / Math.max(vals.length,1);
-    const dateShare = vals.filter(isDateLike).length / Math.max(vals.length,1);
+    const N = Math.max(vals.length,1);
+    const numShare  = vals.filter(isNumeric).length / N;
+    const dateShare = vals.filter(isDateLike).length / N;
+    const yearShare = vals.filter(isYearVal).length / N;
+    // dominant granularity among parsed dates
+    const grans = {}; vals.forEach(v=>{ const p=parseDate(v); if(p) grans[p.gran]=(grans[p.gran]||0)+1; });
+    const granularity = Object.keys(grans).sort((a,b)=>grans[b]-grans[a])[0] || null;
     let type = 'category';
-    if (numShare >= 0.8) type = 'number';
-    else if (dateShare >= 0.6) type = 'date';
-    return { name: name || ('Column '+(i+1)), type, index:i };
+    if (dateShare >= 0.7 && numShare < 0.8) type = 'date';     // Jan 2024 / Q1 2024 / ISO (non-numeric dates)
+    else if (numShare >= 0.8) type = (yearShare >= 0.9) ? 'yearcand' : 'number';   // all-years → candidate date
+    else if (dateShare >= 0.7) type = 'date';
+    return { name: name || ('Column '+(i+1)), type, index:i, granularity };
   });
+  // Resolve year candidates: treat as a date column ONLY if another real number column exists to hold the values.
+  const hasRealNum = columns.some(c => c.type === 'number');
+  columns.forEach(c => { if (c.type === 'yearcand') c.type = hasRealNum ? 'date' : 'number'; });
 
-  const data = body.map(r => {
+  let data = body.map(r => {
     const o = {};
     columns.forEach(c => {
-      o[c.name] = c.type === 'number' ? parseNum(r[c.index]) : String(r[c.index]).trim();
+      if (c.type === 'number'){ o[c.name] = parseNum(r[c.index]); }
+      else if (c.type === 'date'){
+        const p = parseDate(r[c.index]);
+        o[c.name] = p ? fmtDateLabel(p.t, c.granularity || p.gran) : String(r[c.index]).trim();
+        o[' t'+c.index] = p ? p.t : NaN;                  // temp timestamp for sorting
+      } else { o[c.name] = String(r[c.index]).trim(); }
     });
     return o;
-  }).filter(o => columns.some(c => c.type!=='number' ? o[c.name]!=='' : !isNaN(o[c.name])));
+  }).filter(o => columns.some(c => c.type==='number' ? !isNaN(o[c.name]) : o[c.name]!==''));
+
+  // chronological sort when there is a single date column acting as the axis
+  const dateCols = columns.filter(c => c.type === 'date');
+  if (dateCols.length === 1){
+    const k = ' t'+dateCols[0].index;
+    if (data.every(o => !isNaN(o[k]))) data.sort((a,b)=> a[k]-b[k]);
+  }
+  data.forEach(o => columns.forEach(c => { if (c.type==='date') delete o[' t'+c.index]; }));
 
   return { columns, rows: data.slice(0, 250) };
 }
@@ -827,6 +919,20 @@ function chooseChart(data, insight){
   const n = data.rows.length;
 
   const kw = re => re.test(t);
+
+  // explicit consulting-type intent wins (works with or without a date axis)
+  if (kw(/\b(waterfall|bridge|cumulative|build ?up|contribution to)\b/) && nums.length>=1 && labels.length) return 'waterfall';
+  if (kw(/\b(funnel|conversion|drop ?off|pipeline stages?|attrition)\b/) && nums.length>=1 && labels.length) return 'funnel';
+  if (kw(/\b(gantt|schedule|milestones?|roadmap|phases?|timeline of work)\b/)) return 'gantt';
+  if (kw(/\b(bcg|growth.?share|matrix|quadrant|portfolio matrix)\b/) && nums.length>=2) return 'bcg';
+  if (kw(/\b(heat ?map|heat ?matrix|grid of)\b/) && nums.length>=2 && labels.length) return 'heatmatrix';
+
+  // strong time-axis bias when a real date column is present
+  if (dates.length >= 1 && nums.length >= 1){
+    if (nums.length >= 2 && kw(/\b(rank|standings?|positions?|overtook|climbed|league)\b/)) return 'bump';
+    if (nums.length >= 2 && kw(/\b(\bvs\b|versus|against|correlat|relationship|drives?)\b/)) return 'connected';
+    if (kw(/\b(calendar|daily|by day)\b/)) return 'calendar';
+  }
 
   // a real date/time axis with several points -> layered ridge (takes priority over slope, which is for 2-period data with no date axis)
   if (dates.length >= 1 && nums.length >= 1 && n >= 6 && !kw(/\b(rank|share|proportion|percent|breakdown|composition)\b/)) return 'ridge';
@@ -877,7 +983,10 @@ const TYPE_NAMES = {
   bump:'Bump chart', stream:'Streamgraph', horizon:'Horizon chart', calendar:'Calendar heatmap', race:'Animated race',
   sankey:'Sankey diagram', chord:'Chord diagram', network:'Network diagram', parallel:'Parallel coordinates', alluvial:'Alluvial diagram',
   constellation:'Constellation scatter', contour:'Contour / terrain', flowfield:'Flow field', halo:'Halo rings', smallmult:'Small multiples',
-  radialheat:'Radial heatmap', spiral:'Spiral chart', voronoi:'Voronoi', isobar:'Isometric bar', propcircles:'Proportional circles'
+  radialheat:'Radial heatmap', spiral:'Spiral chart', voronoi:'Voronoi', isobar:'Isometric bar', propcircles:'Proportional circles',
+  waterfall:'Waterfall', funnel:'Funnel', gantt:'Gantt timeline', heatmatrix:'Heat matrix', stacked100:'100% stacked bar',
+  bcg:'BCG matrix', proparea:'Proportional area', pictogram:'Pictogram', flow:'Flow diagram', bubblematrix:'Bubble matrix',
+  proptimeline:'Proportional timeline', rankeddotgrid:'Ranked dot grid'
 };
 
 /* ---------- formatting ---------- */
@@ -1779,15 +1888,255 @@ function buildContext(data, type, opts){
                    : Math.max(560, Math.min($('#chart').clientWidth || 760, 820));
   const numVals = data.rows.flatMap(r => nums.map(nc => +r[nc.name])).filter(v=>!isNaN(v));
   const fmt = makeFmt(numVals);
+  const dateCol = dates.length ? dates[0] : null;
   return {
-    rows: data.rows, c, W, fmt, still: !!opts.still,
+    rows: data.rows, c, W, fmt, still: !!opts.still, static: !!opts.static,
     cat: labels.length ? labels[0].name : null,
     num: nums.length ? nums[0].name : null,
-    nums: nums
+    nums: nums,
+    dateColumn: !!dateCol, dateCol: dateCol ? dateCol.name : null, dateGran: dateCol ? dateCol.granularity : null
   };
 }
 
+/* ===================================================================
+   R15 — new chart types (consulting essentials + extras)
+   =================================================================== */
+function niceUnit(x){ if(!(x>0)) return 1; const p=Math.pow(10,Math.floor(Math.log10(x))); const f=x/p; return (f<1.5?1:f<3.5?2:f<7.5?5:10)*p; }
+
+function renderWaterfall(svg,ctx){
+  const c=ctx.c, fmt=ctx.fmt, W=ctx.W;
+  let data=flatData(ctx); if(!data.length) return renderRadial(svg,ctx);
+  let cum=0; const steps=data.map(d=>{ const start=cum; cum+=d.value; return {label:d.label,value:d.value,start,end:cum}; });
+  const total=cum; const bars=steps.concat([{label:'Total',value:total,start:0,end:total,isTotal:true}]);
+  const H=480, m={t:30,r:20,b:54,l:60}; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const lo=Math.min(0,d3.min(bars,b=>Math.min(b.start,b.end))), hi=Math.max(0,d3.max(bars,b=>Math.max(b.start,b.end)));
+  const y=d3.scaleLinear().domain([lo,hi]).nice().range([H-m.b,m.t]);
+  const x=d3.scaleBand().domain(bars.map((b,i)=>i)).range([m.l,W-m.r]).padding(0.3);
+  const g=svg.append('g');
+  y.ticks(5).forEach(t=>{ g.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t)).attr('stroke',mix(c.ink,c.bg,t===0?.5:.92)).attr('stroke-width',t===0?1.3:1);
+    g.append('text').attr('class','cv-axis').attr('x',m.l-8).attr('y',y(t)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.inkSoft).text(fmt(t)); });
+  // running total line across bar ends
+  g.append('path').attr('d',d3.line()(steps.map((s,i)=>[x(i)+x.bandwidth()/2,y(s.end)]))).attr('fill','none').attr('stroke',c.accent).attr('stroke-width',1).attr('opacity',.45);
+  bars.forEach((b,i)=>{
+    const xx=x(i), bw=x.bandwidth(), yT=y(Math.max(b.start,b.end)), yB=y(Math.min(b.start,b.end)), pos=b.value>=0;
+    const fill=b.isTotal? mix(c.ink,c.bg,.25) : (pos? c.ink : c.accent);
+    g.append('rect').attr('class','cv-mark').attr('x',xx).attr('y',yT).attr('width',bw).attr('height',Math.max(1,yB-yT)).attr('rx',2).attr('fill',fill).attr('data-label',b.label).attr('data-value',fmt(b.value));
+    if(i<bars.length-2) g.append('line').attr('x1',xx+bw).attr('x2',x(i+1)).attr('y1',y(b.end)).attr('y2',y(b.end)).attr('stroke',mix(c.ink,c.bg,.55)).attr('stroke-width',1).attr('stroke-dasharray','3 3');
+    g.append('text').attr('x',xx+bw/2).attr('y',(pos||b.isTotal?yT-5:yB+13)).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','10.5px').attr('class','cv-val').text((b.value>0&&!b.isTotal?'+':'')+fmt(b.value));
+    g.append('text').attr('x',xx+bw/2).attr('y',H-m.b+16).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','10.5px').text(b.label.length>10?b.label.slice(0,9)+'…':b.label);
+  });
+  return {n:bars.length};
+}
+
+function renderFunnel(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; let data=flatData(ctx); if(!data.length) return renderRadial(svg,ctx);
+  const H=Math.max(340,Math.min(560,72*data.length+50)); svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const m={t:24,b:24}, maxV=d3.max(data,d=>d.value)||1, cx=W/2, maxW=W*0.64, rowH=(H-m.t-m.b)/data.length, col=palOf(c);
+  data.forEach((d,i)=>{
+    const w0=maxW*(d.value/maxV)/2, next=data[i+1], w1=next?maxW*(next.value/maxV)/2:w0*0.72;
+    const yT=m.t+i*rowH, yB=yT+rowH-6;
+    svg.append('path').attr('class','cv-mark').attr('d',`M${cx-w0},${yT} L${cx+w0},${yT} L${cx+w1},${yB} L${cx-w1},${yB} Z`).attr('fill',col(i)).attr('opacity',.92).attr('data-label',d.label).attr('data-value',fmt(d.value));
+    const pct=Math.round(d.value/data[0].value*100);
+    svg.append('text').attr('x',cx).attr('y',(yT+yB)/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',contrastInk(col(i))).attr('font-size','12px').attr('font-weight','600').text((d.label.length>22?d.label.slice(0,21)+'…':d.label)+'  ·  '+fmt(d.value)+'  ('+pct+'%)');
+  });
+  return {n:data.length};
+}
+
+function renderGantt(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; const {rows,cat,nums}=ctx; let tasks;
+  if(nums.length>=2){
+    const s=nums[0].name,e=nums[1].name;
+    tasks=rows.map((r,i)=>({label:_lab(r,cat,i),start:+r[s],end:+r[e]})).filter(t=>!isNaN(t.start)&&!isNaN(t.end))
+      .map(t=>({label:t.label,start:t.start,end:t.end>=t.start?t.end:t.start+t.end}));
+  } else {
+    let cum=0; tasks=flatData(ctx).map(d=>{ const start=cum; cum+=Math.abs(d.value); return {label:d.label,start,end:cum}; });
+  }
+  if(!tasks.length) return renderDotstrip(svg,ctx);
+  const maxLab=d3.max(tasks,t=>t.label.length)||6, m={t:24,r:40,b:30,l:Math.min(200,maxLab*7+16)};
+  const rowH=Math.max(22,Math.min(42,460/tasks.length)), H=m.t+m.b+tasks.length*rowH; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const x=d3.scaleLinear().domain([d3.min(tasks,t=>t.start),d3.max(tasks,t=>t.end)]).nice().range([m.l,W-m.r]); const g=svg.append('g'), col=palOf(c);
+  x.ticks(6).forEach(t=>{ g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',m.t-4).attr('y2',H-m.b).attr('stroke',mix(c.ink,c.bg,.92)).attr('stroke-width',1);
+    g.append('text').attr('class','cv-axis').attr('x',x(t)).attr('y',H-m.b+14).attr('text-anchor','middle').attr('fill',c.inkSoft).text(fmt(t)); });
+  tasks.forEach((t,i)=>{ const yy=m.t+i*rowH, h=rowH-8, w=Math.max(2,x(t.end)-x(t.start));
+    g.append('rect').attr('class','cv-mark').attr('x',x(t.start)).attr('y',yy).attr('width',w).attr('height',h).attr('rx',4).attr('fill',col(i)).attr('data-label',t.label).attr('data-value',fmt(t.start)+' → '+fmt(t.end));
+    g.append('text').attr('x',m.l-10).attr('y',yy+h/2).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(t.label.length>24?t.label.slice(0,23)+'…':t.label);
+    g.append('text').attr('x',x(t.end)+5).attr('y',yy+h/2).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','10px').text(fmt(t.end));
+  });
+  return {n:tasks.length};
+}
+
+function renderHeatMatrix(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; const {rows,cat,nums}=ctx; if(nums.length<1) return renderRadial(svg,ctx);
+  const rowLabels=rows.map((r,i)=>_lab(r,cat,i)), colLabels=nums.map(n=>n.name);
+  const maxLab=d3.max(rowLabels,s=>s.length)||6, m={t:54,r:20,b:20,l:Math.min(180,maxLab*7+14)};
+  const cw=(W-m.l-m.r)/colLabels.length, ch=Math.max(26,Math.min(46,440/rows.length)), H=m.t+rows.length*ch+m.b; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const all=rows.flatMap(r=>nums.map(n=>+r[n.name])).filter(v=>!isNaN(v)), lo=d3.min(all), hi=d3.max(all);
+  const sc=d3.scaleLinear().domain([lo,hi]).range([0,1]), g=svg.append('g');
+  colLabels.forEach((cl,j)=>g.append('text').attr('x',m.l+cw*j+cw/2).attr('y',m.t-12).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11px').attr('font-weight','600').text(cl.length>12?cl.slice(0,11)+'…':cl));
+  rows.forEach((r,i)=>{
+    g.append('text').attr('x',m.l-8).attr('y',m.t+ch*i+ch/2).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','11px').text(rowLabels[i].length>22?rowLabels[i].slice(0,21)+'…':rowLabels[i]);
+    nums.forEach((n,j)=>{ const v=+r[n.name], x0=m.l+cw*j, y0=m.t+ch*i, k=isNaN(v)?0:sc(v);
+      g.append('rect').attr('class','cv-mark').attr('x',x0+1.5).attr('y',y0+1.5).attr('width',cw-3).attr('height',ch-3).attr('rx',3).attr('fill',isNaN(v)?mix(c.ink,c.bg,.95):mix(c.bg,c.accent,0.12+0.82*k)).attr('data-label',rowLabels[i]+' · '+n.name).attr('data-value',isNaN(v)?'—':fmt(v));
+      if(!isNaN(v)) g.append('text').attr('x',x0+cw/2).attr('y',y0+ch/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',k>0.58?contrastInk(mix(c.bg,c.accent,.85)):c.ink).attr('font-size','10.5px').attr('font-weight','600').text(fmt(v));
+    });
+  });
+  return {n:rows.length*nums.length};
+}
+
+function renderStacked100Single(svg,ctx){
+  const c=ctx.c,W=ctx.W; let data=flatData(ctx).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
+  if(!data.length) return renderRadial(svg,ctx);
+  const tot=d3.sum(data,d=>d.value)||1, H=190, m={l:20,r:20,t:62,b:50}; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const x=d3.scaleLinear().domain([0,100]).range([m.l,W-m.r]), col=palOf(c), g=svg.append('g'); let acc=0;
+  data.forEach((d,i)=>{ const pct=d.value/tot*100, x0=x(acc), x1=x(acc+pct);
+    g.append('rect').attr('class','cv-mark').attr('x',x0).attr('y',m.t).attr('width',Math.max(0,x1-x0)).attr('height',H-m.t-m.b).attr('fill',col(i)).attr('data-label',d.label).attr('data-value',Math.round(pct)+'%');
+    if(pct>=6){ g.append('text').attr('x',(x0+x1)/2).attr('y',m.t+(H-m.t-m.b)/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',contrastInk(col(i))).attr('font-size','11px').attr('font-weight','600').text(Math.round(pct)+'%');
+      g.append('text').attr('x',(x0+x1)/2).attr('y',m.t-10).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','10px').text(d.label.length>12?d.label.slice(0,11)+'…':d.label); }
+    acc+=pct; });
+  return {n:data.length};
+}
+function renderStacked100(svg,ctx){
+  const c=ctx.c,W=ctx.W; const {rows,cat,nums}=ctx; if(nums.length<2) return renderStacked100Single(svg,ctx);
+  const keys=nums.map(n=>n.name), data=rows.map((r,i)=>({label:_lab(r,cat,i),parts:keys.map(k=>Math.max(0,+r[k]||0))}));
+  const maxLab=d3.max(data,d=>d.label.length)||6, m={t:40,r:20,b:20,l:Math.min(180,maxLab*7+14)};
+  const rowH=Math.max(26,Math.min(46,440/data.length)), H=m.t+data.length*rowH+m.b; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const x=d3.scaleLinear().domain([0,100]).range([m.l,W-m.r]), col=palOf(c), g=svg.append('g');
+  keys.forEach((k,j)=>{ const lx=m.l+j*((W-m.l-m.r)/keys.length); g.append('rect').attr('x',lx).attr('y',12).attr('width',11).attr('height',11).attr('rx',2).attr('fill',col(j)); g.append('text').attr('x',lx+15).attr('y',21).attr('fill',c.ink).attr('font-size','10.5px').text(k.length>12?k.slice(0,11)+'…':k); });
+  data.forEach((d,i)=>{ const tot=d3.sum(d.parts)||1, yy=m.t+i*rowH, h=rowH-10; let acc=0;
+    g.append('text').attr('x',m.l-8).attr('y',yy+h/2).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','11px').text(d.label.length>22?d.label.slice(0,21)+'…':d.label);
+    d.parts.forEach((p,j)=>{ const pct=p/tot*100, x0=x(acc), x1=x(acc+pct);
+      g.append('rect').attr('class','cv-mark').attr('x',x0).attr('y',yy).attr('width',Math.max(0,x1-x0)).attr('height',h).attr('fill',col(j)).attr('data-label',d.label+' · '+keys[j]).attr('data-value',Math.round(pct)+'%');
+      if(pct>=9) g.append('text').attr('x',(x0+x1)/2).attr('y',yy+h/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',contrastInk(col(j))).attr('font-size','10px').attr('font-weight','600').text(Math.round(pct)+'%');
+      acc+=pct; });
+  });
+  return {n:data.length};
+}
+
+function renderBCG(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; const {rows,cat,nums}=ctx; if(nums.length<2) return renderRadial(svg,ctx);
+  const xn=nums[0].name,yn=nums[1].name,sn=nums[2]?nums[2].name:null;
+  const pts=rows.map((r,i)=>({label:_lab(r,cat,i),x:+r[xn],y:+r[yn],s:sn?+r[sn]:1})).filter(p=>!isNaN(p.x)&&!isNaN(p.y));
+  if(!pts.length) return renderRadial(svg,ctx);
+  const H=520, m={t:30,r:30,b:46,l:54}; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const xs=d3.scaleLinear().domain(d3.extent(pts,p=>p.x)).nice().range([m.l,W-m.r]);
+  const ys=d3.scaleLinear().domain(d3.extent(pts,p=>p.y)).nice().range([H-m.b,m.t]);
+  const ss=d3.scaleSqrt().domain(sn?[0,d3.max(pts,p=>p.s)]:[0,1]).range([7,sn?26:11]);
+  const qx=xs(d3.median(pts,p=>p.x)), qy=ys(d3.median(pts,p=>p.y)), g=svg.append('g');
+  g.append('rect').attr('x',m.l).attr('y',m.t).attr('width',qx-m.l).attr('height',qy-m.t).attr('fill',mix(c.accent,c.bg,.93));
+  g.append('rect').attr('x',qx).attr('y',m.t).attr('width',W-m.r-qx).attr('height',qy-m.t).attr('fill',mix(c.accent,c.bg,.84));
+  g.append('rect').attr('x',m.l).attr('y',qy).attr('width',qx-m.l).attr('height',H-m.b-qy).attr('fill',mix(c.ink,c.bg,.96));
+  g.append('rect').attr('x',qx).attr('y',qy).attr('width',W-m.r-qx).attr('height',H-m.b-qy).attr('fill',mix(c.accent,c.bg,.93));
+  g.append('line').attr('x1',qx).attr('x2',qx).attr('y1',m.t).attr('y2',H-m.b).attr('stroke',mix(c.ink,c.bg,.5)).attr('stroke-dasharray','4 4');
+  g.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',qy).attr('y2',qy).attr('stroke',mix(c.ink,c.bg,.5)).attr('stroke-dasharray','4 4');
+  [['Question marks',m.l+8,m.t+16,'start'],['Stars',W-m.r-8,m.t+16,'end'],['Dogs',m.l+8,H-m.b-8,'start'],['Cash cows',W-m.r-8,H-m.b-8,'end']]
+    .forEach(([txt,xx,yy,an])=>g.append('text').attr('x',xx).attr('y',yy).attr('text-anchor',an).attr('fill',mix(c.ink,c.bg,.42)).attr('font-size','10px').attr('font-weight','600').text(txt.toUpperCase()));
+  g.append('text').attr('x',(m.l+W-m.r)/2).attr('y',H-8).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(xn);
+  g.append('text').attr('transform',`translate(16,${(m.t+H-m.b)/2}) rotate(-90)`).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(yn);
+  pts.forEach(p=>{ g.append('circle').attr('class','cv-mark').attr('cx',xs(p.x)).attr('cy',ys(p.y)).attr('r',ss(p.s)).attr('fill',c.accent).attr('opacity',.78).attr('stroke',c.bg).attr('stroke-width',1.5).attr('data-label',p.label).attr('data-value',xn+' '+fmt(p.x)+' · '+yn+' '+fmt(p.y)+(sn?' · '+sn+' '+fmt(p.s):''));
+    g.append('text').attr('x',xs(p.x)).attr('y',ys(p.y)-ss(p.s)-3).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','10px').text(p.label.length>14?p.label.slice(0,13)+'…':p.label); });
+  return {n:pts.length};
+}
+
+function renderPropArea(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; let data=flatData(ctx).filter(d=>d.value>0); if(!data.length) return renderRadial(svg,ctx);
+  const H=520; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const root=d3.hierarchy({children:data}).sum(d=>d.value); d3.pack().size([W-10,H-10]).padding(6)(root); const col=palOf(c);
+  root.leaves().forEach((leaf,i)=>{ const r=leaf.r, cx=leaf.x+5, cy=leaf.y+5;
+    svg.append('circle').attr('class','cv-mark').attr('cx',cx).attr('cy',cy).attr('r',r).attr('fill',col(i)).attr('opacity',.9).attr('data-label',leaf.data.label).attr('data-value',fmt(leaf.data.value));
+    if(r>20){ const tc=contrastInk(col(i)), fs=Math.min(15,r/2.6);
+      svg.append('text').attr('x',cx).attr('y',cy-2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',tc).attr('font-size',fs+'px').attr('font-weight','600').text(leaf.data.label.length>12?leaf.data.label.slice(0,11)+'…':leaf.data.label);
+      svg.append('text').attr('x',cx).attr('y',cy+fs).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',tc).attr('font-size',Math.min(13,r/3)+'px').text(fmt(leaf.data.value)); }
+  });
+  return {n:data.length};
+}
+
+function renderPictogram(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; let data=flatData(ctx).filter(d=>!isNaN(d.value)).sort((a,b)=>b.value-a.value);
+  if(!data.length) return renderRadial(svg,ctx);
+  const maxV=d3.max(data,d=>Math.abs(d.value)), per=niceUnit(maxV/18);
+  const maxLab=d3.max(data,d=>d.label.length)||6, m={t:42,r:20,b:14,l:Math.min(180,maxLab*7+14)};
+  const rowH=Math.max(26,Math.min(46,440/data.length)), H=m.t+data.length*rowH+m.b; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const iconW=Math.max(8,Math.min(18,(W-m.l-70)/Math.max(1,maxV/per))), gap=iconW*0.35, g=svg.append('g');
+  g.append('text').attr('x',m.l).attr('y',22).attr('fill',c.inkSoft).attr('font-size','11px').text('1 ■ = '+fmt(per));
+  data.forEach((d,i)=>{ const cy=m.t+i*rowH+rowH/2-4, full=Math.floor(Math.abs(d.value)/per), frac=(Math.abs(d.value)/per)-full;
+    g.append('text').attr('x',m.l-8).attr('y',cy).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(d.label.length>22?d.label.slice(0,21)+'…':d.label);
+    let x0=m.l;
+    for(let k=0;k<full && k<60;k++){ g.append('rect').attr('class','cv-mark').attr('x',x0).attr('y',cy-iconW/2).attr('width',iconW).attr('height',iconW).attr('rx',2).attr('fill',c.accent).attr('data-label',d.label).attr('data-value',fmt(d.value)); x0+=iconW+gap; }
+    if(frac>0.08 && full<60){ g.append('rect').attr('x',x0).attr('y',cy-iconW/2).attr('width',iconW*frac).attr('height',iconW).attr('rx',2).attr('fill',c.accent).attr('opacity',.55); x0+=iconW+gap; }
+    g.append('text').attr('x',x0+6).attr('y',cy).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(fmt(d.value));
+  });
+  return {n:data.length};
+}
+
+function renderFlow(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; let data=flatData(ctx).filter(d=>d.value>0).sort((a,b)=>b.value-a.value).slice(0,8);
+  if(!data.length) return renderDotstrip(svg,ctx);
+  const total=d3.sum(data,d=>d.value), H=Math.max(360,Math.min(560,64*data.length+40)); svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const m={t:24,b:24,l:24,r:24}, dstX=W-m.r-150, srcH=H-m.t-m.b, g=svg.append('g'), col=palOf(c), span=H-m.t-m.b;
+  g.append('rect').attr('x',m.l).attr('y',m.t).attr('width',26).attr('height',srcH).attr('rx',4).attr('fill',c.ink);
+  g.append('text').attr('transform',`translate(${m.l-6},${m.t+srcH/2}) rotate(-90)`).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11px').attr('font-weight','600').text((ctx.num||'Total')+' '+fmt(total));
+  let sy=m.t;
+  data.forEach((d,i)=>{ const lh=srcH*(d.value/total), dyH=Math.max(16,span/data.length-12), dY=m.t+i*(span/data.length);
+    const s0=sy,s1=sy+lh,d0=dY,d1=dY+dyH, midX=(m.l+26+dstX)/2;
+    g.append('path').attr('class','cv-mark').attr('d',`M${m.l+26},${s0} C${midX},${s0} ${midX},${d0} ${dstX},${d0} L${dstX},${d1} C${midX},${d1} ${midX},${s1} ${m.l+26},${s1} Z`).attr('fill',col(i)).attr('opacity',.5).attr('data-label',d.label).attr('data-value',fmt(d.value)+' ('+Math.round(d.value/total*100)+'%)');
+    g.append('rect').attr('x',dstX).attr('y',dY).attr('width',12).attr('height',dyH).attr('rx',3).attr('fill',col(i));
+    g.append('text').attr('x',dstX+18).attr('y',dY+dyH/2).attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','11px').text((d.label.length>16?d.label.slice(0,15)+'…':d.label)+'  '+fmt(d.value));
+    sy+=lh; });
+  return {n:data.length};
+}
+
+function renderBubbleMatrix(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; const {rows,cat,nums}=ctx; if(nums.length<1) return renderRadial(svg,ctx);
+  const sizeN=nums[0].name, colN=nums[1]?nums[1].name:nums[0].name;
+  const data=rows.map((r,i)=>({label:_lab(r,cat,i),s:+r[sizeN],cv:+r[colN]})).filter(d=>!isNaN(d.s));
+  if(!data.length) return renderRadial(svg,ctx);
+  const H=520; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const cols=Math.max(1,Math.round(Math.sqrt(data.length*W/H))), rowsN=Math.ceil(data.length/cols);
+  const m={t:24,r:20,b:20,l:20}, cwd=(W-m.l-m.r)/cols, cht=(H-m.t-m.b)/rowsN;
+  const ss=d3.scaleSqrt().domain([0,d3.max(data,d=>d.s)]).range([4,Math.min(cwd,cht)*0.4]);
+  const cs=d3.scaleLinear().domain(d3.extent(data,d=>d.cv)).range([0,1]), g=svg.append('g');
+  data.forEach((d,i)=>{ const cx=m.l+(i%cols)*cwd+cwd/2, cy=m.t+Math.floor(i/cols)*cht+cht/2-6;
+    g.append('circle').attr('class','cv-mark').attr('cx',cx).attr('cy',cy).attr('r',ss(d.s)).attr('fill',mix(c.bg,c.accent,0.2+0.78*(isNaN(d.cv)?.5:cs(d.cv)))).attr('stroke',mix(c.ink,c.bg,.6)).attr('stroke-width',.6).attr('data-label',d.label).attr('data-value',sizeN+' '+fmt(d.s)+(nums[1]?' · '+colN+' '+fmt(d.cv):''));
+    g.append('text').attr('x',cx).attr('y',cy+cht/2-4).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','10px').text(d.label.length>12?d.label.slice(0,11)+'…':d.label); });
+  return {n:data.length};
+}
+
+function renderPropTimeline(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; const {rows,cat,num}=ctx;
+  let data=rows.map((r,i)=>({label:_lab(r,cat,i),value:+r[num],i})).filter(d=>!isNaN(d.value)); if(!data.length) return renderDotstrip(svg,ctx);
+  const H=360, m={l:30,r:30}, axisY=H*0.62; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const x=d3.scalePoint().domain(data.map(d=>d.i)).range([m.l,W-m.r]).padding(0.5);
+  const ss=d3.scaleSqrt().domain([0,d3.max(data,d=>Math.abs(d.value))]).range([5,46]), g=svg.append('g');
+  g.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',axisY).attr('y2',axisY).attr('stroke',mix(c.ink,c.bg,.4)).attr('stroke-width',2);
+  data.forEach(d=>{ const cx=x(d.i), r=ss(Math.abs(d.value));
+    g.append('line').attr('x1',cx).attr('x2',cx).attr('y1',axisY).attr('y2',axisY-r).attr('stroke',mix(c.ink,c.bg,.6)).attr('stroke-width',1);
+    g.append('circle').attr('class','cv-mark').attr('cx',cx).attr('cy',axisY-r).attr('r',r).attr('fill',c.accent).attr('opacity',.82).attr('stroke',c.bg).attr('stroke-width',1.5).attr('data-label',d.label).attr('data-value',fmt(d.value));
+    g.append('text').attr('x',cx).attr('y',axisY+16).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','10px').text(d.label.length>10?d.label.slice(0,9)+'…':d.label);
+    g.append('text').attr('x',cx).attr('y',axisY-2*r-6).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','10px').attr('font-weight','600').text(fmt(d.value));
+  });
+  return {n:data.length};
+}
+
+function renderRankedDotGrid(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; let data=flatData(ctx).filter(d=>!isNaN(d.value)&&d.value>0).sort((a,b)=>b.value-a.value);
+  if(!data.length) return renderRadial(svg,ctx);
+  const per=niceUnit(d3.max(data,d=>d.value)/24), maxLab=d3.max(data,d=>d.label.length)||6;
+  const m={t:42,r:50,b:14,l:Math.min(190,maxLab*7+30)};
+  const rowH=Math.max(22,Math.min(40,440/data.length)), H=m.t+data.length*rowH+m.b; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const dotR=Math.min(7,(rowH-8)/2), step=dotR*2.5, g=svg.append('g'), col=palOf(c);
+  g.append('text').attr('x',m.l).attr('y',22).attr('fill',c.inkSoft).attr('font-size','11px').text('1 ● = '+fmt(per));
+  data.forEach((d,i)=>{ const yy=m.t+i*rowH+rowH/2-2, cnt=Math.round(d.value/per);
+    g.append('text').attr('x',m.l-8).attr('y',yy).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text((i+1)+'. '+(d.label.length>18?d.label.slice(0,17)+'…':d.label));
+    let x0=m.l+2; for(let k=0;k<cnt && k<70;k++){ g.append('circle').attr('class','cv-mark').attr('cx',x0+dotR).attr('cy',yy).attr('r',dotR).attr('fill',col(i)).attr('data-label',d.label).attr('data-value',fmt(d.value)); x0+=step; }
+    g.append('text').attr('x',Math.min(W-m.r,x0+8)).attr('y',yy).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','10.5px').text(fmt(d.value));
+  });
+  return {n:data.length};
+}
+
 const RENDERERS = {
+  waterfall:renderWaterfall, funnel:renderFunnel, gantt:renderGantt, heatmatrix:renderHeatMatrix, stacked100:renderStacked100,
+  bcg:renderBCG, proparea:renderPropArea, pictogram:renderPictogram, flow:renderFlow, bubblematrix:renderBubbleMatrix,
+  proptimeline:renderPropTimeline, rankeddotgrid:renderRankedDotGrid,
   radial:renderRadial, slope:renderSlope, waffle:renderWaffle, beeswarm:renderBeeswarm, connected:renderConnected, dotstrip:renderDotstrip, ridge:renderRidge,
   lollipop:renderLollipop, dumbbell:renderDumbbell, diverging:renderDiverging, bullet:renderBullet,
   violin:renderViolin, treemap:renderTreemap, sunburst:renderSunburst, marimekko:renderMarimekko,
@@ -1809,11 +2158,44 @@ function validateFor(type, data){
     return 'Needs a label column and a value column.';
   if (type==='beeswarm' && nums.length<1) return 'Needs at least one numeric column.';
   if (type==='ridge' && nums.length<1) return 'Needs at least one numeric column.';
+  // R15 new types
+  if ((type==='bcg'||type==='stacked100') && nums.length<2) return 'Needs two numeric columns.';
+  if ((type==='waterfall'||type==='funnel'||type==='proparea'||type==='pictogram'||type==='flow'||type==='rankeddotgrid'||type==='proptimeline'||type==='heatmatrix'||type==='gantt')
+      && (nums.length<1 || labels.length<1)) return 'Needs a label column and a value column.';
+  if (type==='bubblematrix' && nums.length<1) return 'Needs at least one numeric column.';
   return null;
 }
 
 // state for the 5-option pager (one full-width chart at a time, arrow-navigated)
 let CARDS = [], GEN = null, curOpt = 0, navBusy = false;
+let STATIC_MODE = false;   // R15 item 2: Animated (default) vs Static (no anims, value labels on)
+
+// Static mode: print value labels directly on standard bar/dot charts (no hover needed).
+// Dense / self-labelling types are skipped; proximity check avoids double-labelling.
+const STATIC_SKIP = new Set(['waterfall','funnel','gantt','heatmatrix','stacked100','bcg','proparea','pictogram','flow','bubblematrix','proptimeline','rankeddotgrid',
+  'waffle','beeswarm','dotmatrix','strip','isotype','constellation','contour','flowfield','voronoi','spiral','radialheat','halo','calendar','stream','parallel','race','horizon','smallmult','ridge','violin']);
+function addStaticLabels(svgNode, c, type){
+  if (STATIC_SKIP.has(type)) return;
+  const NS='http://www.w3.org/2000/svg';
+  const marks=[...svgNode.querySelectorAll('.cv-mark[data-value]')];
+  if (!marks.length || marks.length>40) return;
+  const texts=[...svgNode.querySelectorAll('text')].map(t=>{ let b; try{b=t.getBBox();}catch(e){return null;} return b?{x:b.x+b.width/2,y:b.y+b.height/2}:null; }).filter(Boolean);
+  marks.forEach(m=>{
+    const v=m.getAttribute('data-value'); if(v==null||v==='') return;
+    let bb; try{ bb=m.getBBox(); }catch(e){ return; } if(!bb||(bb.width<1&&bb.height<1)) return;
+    const tag=m.tagName.toLowerCase(); let tx,ty,anchor='middle',baseline='middle';
+    if(tag==='rect'){ if(bb.width>=bb.height){ tx=bb.x+bb.width+4; ty=bb.y+bb.height/2; anchor='start'; } else { tx=bb.x+bb.width/2; ty=bb.y-4; baseline='auto'; } }
+    else { tx=bb.x+bb.width/2; ty=bb.y+bb.height/2; }
+    if(texts.some(p=>Math.abs(p.x-tx)<16 && Math.abs(p.y-ty)<13)) return;   // already labelled nearby
+    const t=document.createElementNS(NS,'text');
+    t.setAttribute('x',tx.toFixed(1)); t.setAttribute('y',ty.toFixed(1));
+    t.setAttribute('text-anchor',anchor); t.setAttribute('dominant-baseline',baseline);
+    t.setAttribute('font-size','10.5px'); t.setAttribute('font-weight','600'); t.setAttribute('fill',c.ink);
+    t.setAttribute('paint-order','stroke'); t.setAttribute('stroke',c.bg); t.setAttribute('stroke-width','2.6'); t.setAttribute('stroke-linejoin','round');
+    t.setAttribute('class','cv-staticlabel'); t.textContent=v;
+    svgNode.appendChild(t); texts.push({x:tx,y:ty});
+  });
+}
 
 function generate(opt){
   const explicit = opt !== false;            // reactive re-renders (colour/format tweaks) pass false
@@ -1864,7 +2246,7 @@ function generate(opt){
   det.innerHTML = '';                       // no meta-copy / no option labels
 
   renderOption(0);                          // paint the first option…
-  pulseIn($('#chart'));                     // …with the settle-in animation
+  if (!STATIC_MODE) pulseIn($('#chart'));   // …with the settle-in animation (animated mode only)
   const navExp = $('#navExport'); if (navExp) navExp.disabled = false;
   if (explicit) HIST_ID = null;             // explicit Generate starts a new history entry
   scheduleCommit(explicit);                 // Feature 1/4: save this generation to project history
@@ -1877,13 +2259,17 @@ function renderOption(idx){
   curOpt = idx;
   stopAnims();
   const data = GEN.data, insight = GEN.insight, c = r.c;
-  const ctx = buildContext(data, r.type, { c, still:false });
+  const ctx = buildContext(data, r.type, { c, still: STATIC_MODE, static: STATIC_MODE });
   const host = d3.select('#chart').html('');
   try { RENDERERS[r.type](host.append('svg'), ctx); }
   catch(e){ console.error(e); host.html('<div class="pg-error">This option couldn’t render — use the arrows to try another.</div>'); }
 
-  // the panel adopts this option's palette so dark + light variations stay legible
+  // R15 item 2: Static mode — disable anims (via CSS class) and print value labels directly
   const fig = $('#figure');
+  fig.classList.toggle('static', STATIC_MODE);
+  if (STATIC_MODE){ const sv = document.querySelector('#chart svg'); if (sv) try{ addStaticLabels(sv, c, r.type); }catch(e){} }
+
+  // the panel adopts this option's palette so dark + light variations stay legible
   fig.style.background = c.bg; fig.style.color = c.ink;
   fig.style.setProperty('--ink', c.ink);
   fig.style.setProperty('--ink-soft', c.inkSoft);
@@ -1905,6 +2291,7 @@ function navTo(dir){
   if (navBusy) return;
   const next = curOpt + dir;
   if (next < 0 || next >= CARDS.length) return;
+  if (STATIC_MODE){ renderOption(next); scheduleCommit(false); refreshRefineUI(); return; }  // instant, no page-turn
   navBusy = true;
   const el = $('#chart');
   el.classList.remove('pg-enter');
@@ -1953,11 +2340,14 @@ function pickAutoTypes(data, insight){
   const C = data.columns;
   const nums   = C.filter(c=>c.type==='number').length;
   const labels = C.filter(c=>c.type==='category'||c.type==='date').length;
+  const hasDate = C.some(c=>c.type==='date');
   let pool;
-  if      (nums>=3 && labels>=1)  pool=['parallel','smallmult','bump','radial','dotstrip','slope','constellation','dumbbell','treemap'];
-  else if (nums>=2 && labels>=1)  pool=['slope','dumbbell','connected','bump','dotstrip','radial','smallmult','diverging','lollipop'];
+  if      (hasDate && nums>=2)    pool=['bump','connected','ridge','stream','smallmult','heatmatrix','waterfall','proptimeline'];
+  else if (hasDate && nums>=1)    pool=['ridge','waterfall','proptimeline','bump','stream','radial','funnel','calendar'];
+  else if (nums>=3 && labels>=1)  pool=['parallel','heatmatrix','bcg','smallmult','bump','stacked100','radial','dotstrip','treemap'];
+  else if (nums>=2 && labels>=1)  pool=['bcg','stacked100','slope','dumbbell','connected','heatmatrix','dotstrip','radial','lollipop'];
   else if (nums>=2 && labels===0) pool=['connected','constellation','contour','voronoi','beeswarm','spiral'];
-  else if (nums===1 && labels>=1) pool=['radial','treemap','dotstrip','lollipop','waffle','isotype','pack','propcircles','halo','spiral','radialheat','diverging','beeswarm'];
+  else if (nums===1 && labels>=1) pool=['radial','waterfall','funnel','treemap','dotstrip','proparea','pictogram','rankeddotgrid','lollipop','waffle'];
   else                            pool=['beeswarm','violin','constellation','spiral','radialheat','contour'];
   const primary = chooseChart(data, insight);
   const ordered = [primary, ...pool.filter(t=>t!==primary)];
@@ -2018,7 +2408,9 @@ body{margin:0;background:${pageBg};
 .cv-anno{font-family:"Fraunces",Georgia,serif;font-style:italic}
 .cv-axis{font-size:11px}
 text{font-family:"Inter",sans-serif}
-${figureCSS()}`;
+.cv-staticlabel{font-variant-numeric:tabular-nums}
+${figureCSS()}
+${STATIC_MODE ? '.cv-in{opacity:1!important;animation:none!important}.cv-draw{stroke-dashoffset:0!important;animation:none!important}.cv-mark{transition:none!important}.cv-figure:hover .cv-mark:not(:hover){opacity:1!important}' : ''}`;
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -2030,7 +2422,7 @@ ${figureCSS()}`;
 <body><figure class="cv-figure">
 <figcaption class="cv-head">${headline}</figcaption>
 ${svgEl.outerHTML}
-<p class="cv-foot"><span>${foot}</span><span>Made with Canopy</span></p>
+<p class="cv-foot"><span>${foot}</span></p>
 </figure>
 <scr`+`ipt>${TOOLTIP_JS}</scr`+`ipt>
 </body></html>`;
@@ -2436,7 +2828,7 @@ function restoreChart(c){
   const catName=(data.columns.filter(x=>x.type==='category'||x.type==='date')[0]||{}).name||'';
   $('#footmeta').textContent=catName?numName+' by '+catName:numName;
   HIST_ID=c.id;
-  renderOption(0); pulseIn($('#chart'));
+  renderOption(0); if(!STATIC_MODE) pulseIn($('#chart'));
   $('#navExport').disabled=false;
   closeSidebar();
   refreshRefineUI();
@@ -2464,7 +2856,7 @@ function applyRefinement(instr){
   if(/\b(larger|bigger|increase|grow|biggest|huge|large)\b/.test(t) && /\b(label|text|font|type|number|title)/.test(t)){ fontScale=Math.min(1.8, fontScale*1.25); changed.push('larger labels'); }
   else if(/\b(smaller|reduce|shrink|tiny|small|tighten)\b/.test(t) && /\b(label|text|font|type|number|title)/.test(t)){ fontScale=Math.max(0.6, fontScale*0.8); changed.push('smaller labels'); }
   r.c=colors; r.fontScale=fontScale; r.refined=true;
-  renderOption(curOpt); pulseIn($('#chart'));
+  renderOption(curOpt); if(!STATIC_MODE) pulseIn($('#chart'));
   if(LAST) LAST.refined=true;
   const msg=$('#refineMsg');
   if(changed.length){ if(msg){ msg.className='refine-msg ok'; msg.textContent='Applied: '+changed.join(', ')+'.'; } commitHistory(false); }
@@ -2600,6 +2992,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // pager controls — page through the 5 generated options, one full-width chart at a time
   $('#pgPrev').addEventListener('click', ()=> navTo(-1));
   $('#pgNext').addEventListener('click', ()=> navTo(1));
+  // R15 item 2: Animated / Static toggle — applies instantly to the current chart, no regenerate
+  document.querySelectorAll('#modeToggle .mt-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const wantStatic = b.dataset.mode === 'static';
+      if (wantStatic === STATIC_MODE) return;
+      STATIC_MODE = wantStatic;
+      document.querySelectorAll('#modeToggle .mt-btn').forEach(x=> x.classList.toggle('active', x.dataset.mode===b.dataset.mode));
+      if (GEN && CARDS.length){ stopAnims(); renderOption(curOpt); }
+    });
+  });
   // chip click → colour-picker popover (native picker + hex field + close button)
   function closeColorPops(){ document.querySelectorAll('.cpop').forEach(p=>p.remove()); }
   function openColorPop(k, hex){
