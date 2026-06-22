@@ -366,6 +366,12 @@
   .mode-toggle .mt-btn{background:transparent;border:none;font-family:inherit;font-size:11.5px;font-weight:600;color:var(--ink-soft,#8a8a8a);padding:6px 14px;cursor:pointer;transition:.15s}
   .mode-toggle .mt-btn:hover{color:var(--ink,#1a1a1a)}
   .mode-toggle .mt-btn.active{background:var(--accent,#C4614A);color:#fff}
+  /* rules-engine rationale + lead-pick marker (Auto mode only) */
+  .opt-note{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:-4px 0 12px;font-size:12.5px;line-height:1.45;color:var(--ink-soft,#7a7a7a)}
+  .opt-note[hidden]{display:none}
+  .opt-note .opt-badge{display:inline-block;background:var(--accent,#C4614A);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .opt-note .opt-badge[hidden]{display:none}
+  .opt-note #optWhy{font-style:italic}
   .cv-figure.static .cv-in{opacity:1!important;animation:none!important}
   .cv-figure.static .cv-draw{stroke-dashoffset:0!important;animation:none!important}
   .cv-figure.static .cv-mark{transition:none!important}
@@ -554,6 +560,10 @@
         <label for="charttype">Chart form</label>
         <select id="charttype">
           <option value="auto">Auto — let Canopy choose</option>
+          <optgroup label="Essentials">
+            <option value="bar">Bar chart</option>
+            <option value="line">Line chart</option>
+          </optgroup>
           <optgroup label="Consulting essentials">
             <option value="waterfall">Waterfall chart</option>
             <option value="bcg">BCG quadrant / matrix</option>
@@ -570,6 +580,8 @@
             <option value="diverging">Diverging bar</option>
             <option value="dotplot">Dot plot</option>
             <option value="bullet">Bullet chart</option>
+            <option value="range">Range plot</option>
+            <option value="candlestick">Candlestick</option>
             <option value="radar">Radar chart</option>
           </optgroup>
           <optgroup label="Distribution">
@@ -577,6 +589,7 @@
             <option value="violin">Violin plot</option>
             <option value="ridge">Ridgeline / Joy plot</option>
             <option value="strip">Strip plot</option>
+            <option value="barcode">Barcode plot</option>
             <option value="dotmatrix">Dot matrix</option>
             <option value="waffle">Waffle chart</option>
             <option value="pyramid">Population pyramid</option>
@@ -660,6 +673,7 @@
             <button type="button" class="mt-btn" data-mode="static">Static</button>
           </div>
           <figcaption class="cv-head" id="headline"></figcaption>
+          <div class="opt-note" id="optNote" hidden><span class="opt-badge" id="optBadge" hidden>★ Lead pick</span><span id="optWhy"></span></div>
           <div class="pager" id="pager">
             <button class="pg-arrow prev" id="pgPrev" type="button" aria-label="Previous option">&#8249;</button>
             <div id="chart"></div>
@@ -858,8 +872,14 @@ function cellsToData(rows){
   // header detection: first row non-numeric, and some later row has a numeric cell in a col
   let header = null, body = rows;
   const firstAllNonNum = rows[0].every(c => !isNumeric(c));
-  const laterHasNum = rows.slice(1).some(r => r.some(c => isNumeric(c)));
-  if (rows.length > 1 && firstAllNonNum && laterHasNum){
+  const laterHasNum = rows.slice(1).some(r => r.some(c => isNumeric(c) || isDateLike(c)));   // a value OR a date marks a real body row
+  // year-column header: a text label followed by all year cells (e.g. "Brand, 2021, 2022, 2023"),
+  // where the body rows don't themselves start with a year — common for bump / time-series tables.
+  const yearHeader = rows.length > 1 && rows[0].length > 1 && !isNumeric(rows[0][0])
+    && rows[0].slice(1).every(isYearVal)
+    && rows.slice(1).every(r => !isYearVal(r[0]))
+    && rows.slice(1).some(r => r.slice(1).some(c => isNumeric(c) && !isYearVal(c)));
+  if (rows.length > 1 && ((firstAllNonNum && laterHasNum) || yearHeader)){
     header = rows[0].map(h => String(h).trim());
     body = rows.slice(1);
   } else {
@@ -892,7 +912,7 @@ function cellsToData(rows){
       else if (c.type === 'date'){
         const p = parseDate(r[c.index]);
         o[c.name] = p ? fmtDateLabel(p.t, c.granularity || p.gran) : String(r[c.index]).trim();
-        o[' t'+c.index] = p ? p.t : NaN;                  // temp timestamp for sorting
+        o['__t'+c.index] = p ? p.t : NaN;                  // temp timestamp for sorting
       } else { o[c.name] = String(r[c.index]).trim(); }
     });
     return o;
@@ -901,10 +921,13 @@ function cellsToData(rows){
   // chronological sort when there is a single date column acting as the axis
   const dateCols = columns.filter(c => c.type === 'date');
   if (dateCols.length === 1){
-    const k = ' t'+dateCols[0].index;
+    const k = '__t'+dateCols[0].index;
     if (data.every(o => !isNaN(o[k]))) data.sort((a,b)=> a[k]-b[k]);
   }
-  data.forEach(o => columns.forEach(c => { if (c.type==='date') delete o[' t'+c.index]; }));
+  // keep the '__t<index>' timestamps on each row so date-aware renderers (e.g. Gantt) can
+  // position marks on a real time axis — the day-granularity label drops the year, so
+  // re-parsing from the label is lossy. The key isn't a column name, so nothing else reads
+  // it and parsed rows are never serialised (history stores the raw textarea text).
 
   return { columns, rows: data.slice(0, 250) };
 }
@@ -932,6 +955,13 @@ function chooseChart(data, insight){
   if (kw(/\b(bcg|growth.?share|matrix|quadrant|portfolio matrix)\b/) && nums.length>=2) return 'bcg';
   if (kw(/\b(heat ?map|heat ?matrix|grid of)\b/) && nums.length>=2 && labels.length) return 'heatmatrix';
 
+  // Batch 2 — comparison / range / benchmark intent
+  if (dates.length >= 2) return 'gantt';                                                              // two date columns ⇒ a schedule
+  if (kw(/\b(candlestick|ohlc|open.?high.?low.?close|stock price)\b/) && nums.length>=3) return 'candlestick';
+  if (kw(/\b(range|span|spread|low to high|min.{0,4}(to|and|max)|between low)\b/) && nums.length>=2 && labels.length) return 'range';
+  if (kw(/\b(bullet|vs target|against target|actual vs|kpi|performance vs|benchmark)\b/) && nums.length>=1 && labels.length) return 'bullet';
+  if (kw(/\b(barcode|rug ?plot|every (data ?)?point|spread of values|all the values)\b/) && nums.length>=1) return 'barcode';
+
   // strong time-axis bias when a real date column is present
   if (dates.length >= 1 && nums.length >= 1){
     if (nums.length >= 2 && kw(/\b(rank|standings?|positions?|overtook|climbed|league)\b/)) return 'bump';
@@ -955,8 +985,10 @@ function chooseChart(data, insight){
   // richer intent -> creative / structural forms
   if (kw(/\b(constellation|star|cosmos|galaxy|scatter ?map)\b/)) return 'constellation';
   if (kw(/\b(network|node|nodes|web of|graph of|interconnected)\b/)) return 'constellation';
+  if (kw(/\b(sankey|flow|flows?|pipeline|pathway|routes?|moves? (from|through)|transitions?)\b/) && cats.length>=2 && nums.length>=1) return 'sankey';
   if (kw(/\b(flow|sankey|pipeline|funnel|stages?|pathway|routes?)\b/)) return 'parallel';
   if (kw(/\b(profile|profiles|across (several|many) (metrics|dimensions)|multivariate|trade ?offs?)\b/) && nums.length>=3) return 'parallel';
+  if (kw(/\b(marimekko|mekko|mosaic|two (dimensions|proportions)|width and height)\b/) && ((cats.length>=2 && nums.length>=1) || nums.length>=2)) return 'marimekko';
   if (kw(/\b(hierarch|nested|tree ?map|portfolio|made up of|composed of|breakdown of)\b/) && labels.length && nums.length>=1) return 'treemap';
   if (kw(/\b(pictogram|isotype|people|population|how many|units?)\b/) && labels.length && nums.length>=1) return 'isotype';
   if (kw(/\b(density|terrain|elevation|topograph|contour|hot ?spots?|where .* concentrate)\b/)) return 'contour';
@@ -967,6 +999,7 @@ function chooseChart(data, insight){
   if (kw(/\b(dumbbell|gap between|disparity|two groups|men vs women|then vs now)\b/) && nums.length>=2) return 'dumbbell';
 
   // shape-based fallback (favours interesting, non-default forms)
+  if (cats.length >= 2 && nums.length === 1) return 'treemap';   // Parent/Child/Value-shaped → hierarchy
   if (nums.length >= 3 && labels.length >= 1) return 'parallel';
   if (nums.length >= 2 && labels.length >= 1) return 'slope';
   if (nums.length >= 2 && labels.length === 0) return 'connected';
@@ -981,6 +1014,7 @@ function chooseChart(data, insight){
   return 'radial';
 }
 const TYPE_NAMES = {
+  line:'Line chart', bar:'Bar chart',
   radial:'Radial bars', slope:'Slope chart', waffle:'Waffle chart', beeswarm:'Beeswarm', connected:'Connected scatter', dotstrip:'Dot strip', ridge:'Ridgeline',
   dumbbell:'Dumbbell chart', lollipop:'Lollipop chart', diverging:'Diverging bar', dotplot:'Dot plot', bullet:'Bullet chart',
   violin:'Violin plot', strip:'Strip plot', dotmatrix:'Dot matrix',
@@ -992,7 +1026,8 @@ const TYPE_NAMES = {
   waterfall:'Waterfall', funnel:'Funnel', gantt:'Gantt timeline', heatmatrix:'Heat matrix', stacked100:'100% stacked bar',
   bcg:'BCG matrix', proparea:'Proportional area', pictogram:'Pictogram', flow:'Flow diagram', bubblematrix:'Bubble matrix',
   proptimeline:'Proportional timeline', rankeddotgrid:'Ranked dot grid',
-  scatter:'Scatter plot', quadrant:'Quadrant', radar:'Radar chart', pie:'Pie chart', pyramid:'Population pyramid'
+  scatter:'Scatter plot', quadrant:'Quadrant', radar:'Radar chart', pie:'Pie chart', pyramid:'Population pyramid',
+  range:'Range plot', candlestick:'Candlestick', barcode:'Barcode plot'
 };
 
 /* ---------- formatting ---------- */
@@ -1122,6 +1157,121 @@ function renderSlope(svg, ctx){
       .attr('fill',hot?c.ink:c.inkSoft).attr('font-size','12px').attr('font-weight',hot?600:400)
       .text(`${fmt(d.b)}  ${d.label}`);
   });
+  return {n:data.length};
+}
+
+// LINE — clean line(s) on a date/ordered x-axis (honest default for simple change-over-time).
+// Multi-series labelled at the line ends; breaks cleanly on missing cells; uses the date layer.
+function renderLine(svg,ctx){
+  const c=ctx.c, fmt=ctx.fmt, W=ctx.W, H=480;
+  const {rows, nums, cat, dates} = ctx;
+  if(!nums || nums.length<1) return renderDotstrip(svg,ctx);
+  const series=nums.slice(0,5), capped=nums.length>5;
+  const dateCol=dates&&dates.length?dates[0]:null, gran=dateCol?dateCol.granularity:null;
+  // x positions: real time scale for dates, ordered points otherwise
+  let xs;
+  if(dateCol) xs=rows.map((r,i)=>({i,t:dateTS(r,dateCol),label:String(r[dateCol.name])})).filter(d=>!isNaN(d.t));
+  else xs=rows.map((r,i)=>({i,t:i,label:cat!=null?String(r[cat]):String(i+1)}));
+  if(xs.length<2) return renderDotstrip(svg,ctx);
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const m={t:30,r:104,b:42,l:56};
+  const x=dateCol ? d3.scaleTime().domain(d3.extent(xs,d=>d.t)).range([m.l,W-m.r])
+                  : d3.scalePoint().domain(xs.map(d=>d.i)).range([m.l,W-m.r]);
+  const xpos=d=>dateCol?x(d.t):x(d.i);
+  const allVals=rows.flatMap(r=>series.map(s=>+r[s.name])).filter(v=>!isNaN(v));
+  const y=d3.scaleLinear().domain(d3.extent(allVals)).nice().range([H-m.b,m.t]);
+  const g=svg.append('g'), col=palOf(c);
+  y.ticks(5).forEach(t=>{ g.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t)).attr('stroke',mix(c.ink,c.bg,.92));
+    g.append('text').attr('class','cv-axis').attr('x',m.l-8).attr('y',y(t)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.inkSoft).text(fmt(t)); });
+  // x-axis labels
+  const idxShow = xs.length<=8 ? xs : [xs[0], xs[Math.floor(xs.length/2)], xs[xs.length-1]];
+  idxShow.forEach(d=> g.append('text').attr('class','cv-axis').attr('x',xpos(d)).attr('y',H-m.b+18).attr('text-anchor','middle').attr('fill',c.inkSoft)
+    .text(dateCol?fmtDateLabel(d.t,gran):(d.label.length>10?d.label.slice(0,9)+'…':d.label)));
+  const ends=[];
+  series.forEach((s,si)=>{
+    const cc = si===0 ? c.accent : col(si);
+    const pts=xs.map(d=>({x:xpos(d), v:+rows[d.i][s.name], label:d.label}));
+    // break the line on missing values rather than interpolating across gaps
+    const segs=[]; let cur=[]; pts.forEach(pt=>{ if(isNaN(pt.v)){ if(cur.length){segs.push(cur);cur=[];} } else cur.push(pt); }); if(cur.length) segs.push(cur);
+    const line=d3.line().x(d=>d.x).y(d=>y(d.v));
+    segs.forEach(seg=>{ if(seg.length<2){ if(seg.length===1) g.append('circle').attr('cx',seg[0].x).attr('cy',y(seg[0].v)).attr('r',3).attr('fill',cc); return; }
+      const path=g.append('path').attr('class','cv-draw').attr('d',line(seg)).attr('fill','none').attr('stroke',cc).attr('stroke-width',2.4).attr('stroke-linecap','round').attr('stroke-linejoin','round');
+      const L=path.node().getTotalLength(); path.style('--len',L).style('--d',(si*0.08)+'s').attr('stroke-dasharray',L).attr('stroke-dashoffset',L); });
+    pts.forEach(pt=>{ if(isNaN(pt.v)) return; g.append('circle').attr('class','cv-mark cv-in').style('--d',(0.35+si*0.06)+'s').attr('cx',pt.x).attr('cy',y(pt.v)).attr('r',3).attr('fill',c.bg).attr('stroke',cc).attr('stroke-width',1.8)
+      .attr('data-label',pt.label+' · '+s.name).attr('data-value',fmt(pt.v)); });
+    const last=[...pts].reverse().find(pt=>!isNaN(pt.v));
+    if(last) ends.push({y:y(last.v), name:s.name, cc, end:last.v});
+  });
+  // de-cluttered end labels (series name + end value at the right margin)
+  ends.sort((a,b)=>a.y-b.y); for(let k=1;k<ends.length;k++){ if(ends[k].y-ends[k-1].y<14) ends[k].y=ends[k-1].y+14; }
+  ends.forEach(e=>{ const t=g.append('text').attr('class','cv-in').style('--d','.6s').attr('x',W-m.r+8).attr('y',e.y).attr('dominant-baseline','middle').attr('fill',e.cc).attr('font-size','11.5px').attr('font-weight',600);
+    t.append('tspan').text(e.name.length>13?e.name.slice(0,12)+'…':e.name);
+    t.append('tspan').attr('x',W-m.r+8).attr('dy','13').attr('font-size','10.5px').attr('font-weight',400).attr('fill',mix(e.cc,c.bg,.2)).text(fmt(e.end)); });
+  // static mode: value at each point
+  if(ctx.static) series.forEach((s,si)=>{ const cc=si===0?c.accent:col(si); xs.forEach(d=>{ const v=+rows[d.i][s.name]; if(isNaN(v))return;
+    g.append('text').attr('class','cv-staticlabel').attr('x',xpos(d)).attr('y',y(v)-7).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','9.5px').attr('font-weight',600).text(fmt(v)); }); });
+  if(capped) g.append('text').attr('x',m.l).attr('y',16).attr('fill',c.accent).attr('font-size','10.5px').attr('font-style','italic').text('⚠ showing the first 5 of '+nums.length+' series');
+  return {n:series.length};
+}
+
+// BAR — clean bars comparing a value across categories (honest default for simple comparison).
+// Vertical by default; horizontal for many/long-labelled categories; grouped for multiple numerics.
+function renderBar(svg,ctx){
+  const c=ctx.c, fmt=ctx.fmt, W=ctx.W;
+  const {rows, cat, nums, dates} = ctx;
+  if(!nums || nums.length<1) return renderDotstrip(svg,ctx);
+  const labelCol = cat!=null ? cat : (dates&&dates[0] ? dates[0].name : null);
+  const series=nums.slice(0,6), multi=series.length>1, capped=nums.length>6;
+  let data=rows.map((r,i)=>({label: labelCol!=null?String(r[labelCol]):('#'+(i+1)), vals:series.map(n=>+r[n.name])})).filter(d=>d.vals.some(v=>!isNaN(v)));
+  if(!data.length) return renderDotstrip(svg,ctx);
+  const naturalOrder = !!(dates&&dates.length);                 // dates/sequential bands keep their order; else sort desc
+  if(!naturalOrder) data.sort((a,b)=>(b.vals[0]||0)-(a.vals[0]||0));
+  let tooMany=false; if(data.length>40){ data=data.slice(0,40); tooMany=true; }
+  const n=data.length, maxLab=d3.max(data,d=>d.label.length)||4, hasNeg=data.some(d=>d.vals.some(v=>v<0));
+  const horizontal = !multi && (n>8 || maxLab>10);
+  const col=palOf(c), seriesColor=i=> i===0&&!multi ? c.accent : col(i);
+  const allV=data.flatMap(d=>d.vals).filter(v=>!isNaN(v));
+  const lo=Math.min(0,d3.min(allV)), hi=Math.max(0,d3.max(allV));
+  const note=(capped||tooMany)?16:0;
+  let H;
+  const g0=()=>svg.append('g');
+  if(horizontal){
+    const rowH=Math.max(18,Math.min(40,520/n)); H=24+note+n*rowH+34; svg.attr('viewBox',`0 0 ${W} ${H}`);
+    const m={t:18+note,r:54,b:30,l:Math.min(200,maxLab*7.2+16)};
+    const x=d3.scaleLinear().domain([lo,hi]).nice().range([m.l,W-m.r]), zero=x(0), g=g0();
+    x.ticks(5).forEach(t=>{ g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',m.t-4).attr('y2',H-m.b).attr('stroke',mix(c.ink,c.bg,t===0?.5:.92));
+      g.append('text').attr('class','cv-axis').attr('x',x(t)).attr('y',H-m.b+14).attr('text-anchor','middle').attr('fill',c.inkSoft).text(fmt(t)); });
+    data.forEach((d,i)=>{ const v=d.vals[0]||0, yy=m.t+i*rowH, h=rowH-7, pos=v>=0;
+      g.append('rect').attr('class','cv-mark cv-in').style('--d',(i*0.03)+'s').attr('x',pos?zero:x(v)).attr('y',yy).attr('width',Math.max(0,Math.abs(x(v)-zero))).attr('height',h).attr('rx',2).attr('fill',seriesColor(0))
+        .attr('data-label',d.label).attr('data-value',fmt(v));
+      g.append('text').attr('x',m.l-10).attr('y',yy+h/2).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(d.label.length>24?d.label.slice(0,23)+'…':d.label);
+      g.append('text').attr('class','cv-val').attr('x',pos?x(v)+6:x(v)-6).attr('y',yy+h/2).attr('text-anchor',pos?'start':'end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','11px').attr('font-weight',600)
+        .attr('paint-order','stroke').attr('stroke',c.bg).attr('stroke-width','2.2').attr('stroke-linejoin','round').text(fmt(v)); });
+  } else {
+    H=440; svg.attr('viewBox',`0 0 ${W} ${H}`);
+    const m={t:30+note,r:20,b:Math.min(90, 30+maxLab*5),l:52};
+    const x=d3.scaleBand().domain(data.map(d=>d.label)).range([m.l,W-m.r]).padding(0.22);
+    const y=d3.scaleLinear().domain([lo,hi]).nice().range([H-m.b,m.t]), zero=y(0), g=g0();
+    const xs=multi ? d3.scaleBand().domain(series.map((s,j)=>j)).range([0,x.bandwidth()]).padding(0.1) : null;
+    y.ticks(5).forEach(t=>{ g.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t)).attr('stroke',mix(c.ink,c.bg,t===0?.5:.92));
+      g.append('text').attr('class','cv-axis').attr('x',m.l-8).attr('y',y(t)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.inkSoft).text(fmt(t)); });
+    const longLab = maxLab>6 || n>10;
+    data.forEach((d,i)=>{
+      const bx=x(d.label);
+      series.forEach((s,j)=>{ const v=d.vals[j]; if(isNaN(v))return; const pos=v>=0;
+        const bw=multi?xs.bandwidth():x.bandwidth(), ox=multi?xs(j):0;
+        g.append('rect').attr('class','cv-mark cv-in').style('--d',(i*0.03+j*0.04)+'s').attr('x',bx+ox).attr('y',pos?y(v):zero).attr('width',bw).attr('height',Math.max(0,Math.abs(y(v)-zero))).attr('rx',2).attr('fill',seriesColor(j))
+          .attr('data-label',d.label+(multi?' · '+s.name:'')).attr('data-value',fmt(v));
+        if(!multi || bw>14) g.append('text').attr('class','cv-val').attr('x',bx+ox+bw/2).attr('y',pos?y(v)-5:zero+13).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','10.5px').attr('font-weight',600)
+          .attr('paint-order','stroke').attr('stroke',c.bg).attr('stroke-width','2.2').attr('stroke-linejoin','round').text(fmt(v)); });
+      const lab=g.append('text').attr('x',bx+x.bandwidth()/2).attr('y',H-m.b+(longLab?14:16)).attr('text-anchor',longLab?'end':'middle').attr('fill',c.inkSoft).attr('font-size','11px').text(d.label.length>14?d.label.slice(0,13)+'…':d.label);
+      if(longLab) lab.attr('transform',`rotate(-40,${bx+x.bandwidth()/2},${H-m.b+14})`);
+    });
+    if(multi){ let lx=m.l; series.forEach((s,j)=>{ g.append('rect').attr('x',lx).attr('y',12).attr('width',11).attr('height',11).attr('rx',2).attr('fill',seriesColor(j));
+      g.append('text').attr('x',lx+16).attr('y',21).attr('fill',c.inkSoft).attr('font-size','11px').text(s.name); lx+=String(s.name).length*6.6+34; }); }
+  }
+  if(capped) svg.append('text').attr('x',14).attr('y',14).attr('fill',c.accent).attr('font-size','10.5px').attr('font-style','italic').text('⚠ showing the first 6 of '+nums.length+' series');
+  else if(tooMany) svg.append('text').attr('x',14).attr('y',14).attr('fill',c.accent).attr('font-size','10.5px').attr('font-style','italic').text('⚠ showing the top 40 categories');
   return {n:data.length};
 }
 
@@ -1429,24 +1579,214 @@ function renderDiverging(svg,ctx){
   g.append('text').attr('x',zero).attr('y',m.t-12).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(anyNeg?'0':('mean '+fmt(base)));
   return {n:data.length};
 }
+// BULLET — actual vs target against shaded qualitative bands (Category, Actual, Target[, Band1, Band2]).
+// The most feature-rich of the horizontal-track family: bands + actual bar + perpendicular target marker.
 function renderBullet(svg,ctx){
-  const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
-  let data=flatData(ctx).sort((a,b)=>b.value-a.value);
-  const target=d3.mean(data,d=>d.value), maxV=d3.max(data,d=>d.value)||1;
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,nums=ctx.nums;
+  if(!nums.length) return renderLollipop(svg,ctx);
+  const kAct=nums[0].name, kTar=nums.length>=2?nums[1].name:null;
+  const bandCols=nums.slice(2).map(n=>n.name);           // optional explicit thresholds
+  let data=ctx.rows.map((r,i)=>({
+    label:_lab(r,ctx.cat,i),
+    actual:+r[kAct],
+    target:kTar?+r[kTar]:NaN,
+    bands:bandCols.map(k=>+r[k]).filter(v=>!isNaN(v)).sort((a,b)=>a-b)
+  })).filter(d=>!isNaN(d.actual));
+  if(!data.length) return renderLollipop(svg,ctx);
+  data.sort((a,b)=>b.actual-a.actual);
+  // axis max extends past the largest of actual / target / top band so an over-performing bar still fits
+  const peak=d3.max(data,d=>Math.max(d.actual||0, isNaN(d.target)?0:d.target, d.bands.length?d.bands[d.bands.length-1]:0))||1;
+  const axisMax=peak*1.08;
   const maxLab=d3.max(data,d=>d.label.length)||4;
-  const m={t:18,r:54,b:18,l:Math.min(190,maxLab*7.2+16)};
-  const rowH=Math.max(26,Math.min(46,460/data.length)); const H=m.t+m.b+data.length*rowH;
+  const m={t:22,r:58,b:32,l:Math.min(190,maxLab*7.2+16)};
+  const rowH=Math.max(32,Math.min(54,500/data.length)); const H=m.t+m.b+data.length*rowH;
   svg.attr('viewBox',`0 0 ${W} ${H}`);
-  const x=d3.scaleLinear().domain([0,maxV]).nice().range([m.l,W-m.r]); const g=svg.append('g');
+  const x=d3.scaleLinear().domain([0,axisMax]).nice().range([m.l,W-m.r]); const g=svg.append('g');
+  x.ticks(5).forEach(t=>g.append('text').attr('class','cv-axis').attr('x',x(t)).attr('y',H-m.b+18).attr('text-anchor','middle').attr('fill',c.inkSoft).text(fmt(t)));
   data.forEach((d,i)=>{
-    const yy=m.t+i*rowH, h=rowH-12, cy=yy+h/2;
-    g.append('rect').attr('x',m.l).attr('y',yy).attr('width',x(maxV)-m.l).attr('height',h).attr('rx',4).attr('fill',mix(c.ink,c.bg,.85));
-    g.append('rect').attr('class','cv-mark').attr('x',m.l).attr('y',yy+h*0.22).attr('width',Math.max(0,x(d.value)-m.l)).attr('height',h*0.56).attr('rx',3).attr('fill',c.accent).attr('data-label',d.label).attr('data-value',fmt(d.value));
-    g.append('line').attr('x1',x(target)).attr('x2',x(target)).attr('y1',yy-2).attr('y2',yy+h+2).attr('stroke',c.ink).attr('stroke-width',2);
-    g.append('text').attr('x',m.l-10).attr('y',cy).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(d.label);
-    g.append('text').attr('x',x(d.value)+8).attr('y',cy).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','11px').attr('class','cv-val').text(fmt(d.value));
+    const yy=m.t+i*rowH, h=rowH-14, cy=yy+h/2;
+    // qualitative bands (poor→ok→good). Use this row's thresholds, or defaults from the axis range.
+    let th = d.bands.length ? d.bands.slice(0,2) : [axisMax*0.6, axisMax*0.85];
+    th = th.filter(t=>t>0 && t<axisMax).sort((a,b)=>a-b);
+    const edges=[0,...th,axisMax];
+    for(let b=0;b<edges.length-1;b++){
+      const shade=mix(c.ink,c.bg, 0.91 - b*0.13);        // light (poor) → darker (good)
+      g.append('rect').attr('x',x(edges[b])).attr('y',yy).attr('width',Math.max(0,x(edges[b+1])-x(edges[b]))).attr('height',h).attr('fill',shade);
+    }
+    // actual bar — narrower band, accent, overlaid on the qualitative ranges
+    g.append('rect').attr('class','cv-mark cv-in').style('--d',(i*0.05)+'s')
+      .attr('x',m.l).attr('y',yy+h*0.3).attr('width',Math.max(0,x(d.actual)-m.l)).attr('height',h*0.4).attr('rx',2).attr('fill',c.accent)
+      .attr('data-label',d.label).attr('data-value','actual '+fmt(d.actual)+(kTar&&!isNaN(d.target)?' · target '+fmt(d.target):''));
+    // target marker — perpendicular line crossing the row
+    if(!isNaN(d.target)) g.append('line').attr('x1',x(d.target)).attr('x2',x(d.target)).attr('y1',yy-1).attr('y2',yy+h+1).attr('stroke',c.ink).attr('stroke-width',2.6);
+    // category label
+    g.append('text').attr('x',m.l-10).attr('y',cy).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12.5px').text(d.label.length>22?d.label.slice(0,21)+'…':d.label);
+    // actual value at the bar end (halo so it reads over any band)
+    g.append('text').attr('class','cv-val').attr('x',Math.min(x(d.actual)+8,W-m.r+6)).attr('y',cy).attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','11px').attr('font-weight',600)
+      .attr('paint-order','stroke').attr('stroke',c.bg).attr('stroke-width','2.4').attr('stroke-linejoin','round').text(fmt(d.actual));
+    // target value tucked above its marker
+    if(!isNaN(d.target)) g.append('text').attr('x',x(d.target)).attr('y',yy-3).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','9.5px').attr('font-weight',600).text('▾ '+fmt(d.target));
   });
   return {n:data.length};
+}
+
+// RANGE PLOT — the SPAN between two values per category (Category, Low, High). Thick rounded
+// capsule from low→high with a dot at each end; the span itself is the emphasis. Distinct from the
+// dumbbell (which is a thin two-series connector with no filled span).
+function renderRange(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,nums=ctx.nums;
+  if(nums.length<2) return renderDotstrip(svg,ctx);
+  const kLo=nums[0].name, kHi=nums[1].name; let swapped=false;
+  let data=ctx.rows.map((r,i)=>{
+    let lo=+r[kLo], hi=+r[kHi], sw=false;
+    if(!isNaN(lo)&&!isNaN(hi)&&lo>hi){ const t=lo;lo=hi;hi=t;sw=true;swapped=true; }   // reversed → swap + flag
+    return {label:_lab(r,ctx.cat,i), lo, hi, sw};
+  }).filter(d=>!isNaN(d.lo)&&!isNaN(d.hi));
+  if(!data.length) return renderDotstrip(svg,ctx);
+  data.sort((a,b)=>(b.hi-b.lo)-(a.hi-a.lo));               // widest span first — the span is the story
+  const notes=[];
+  if(nums.length>2) notes.push('extra numeric column'+(nums.length>3?'s':'')+' ignored');
+  if(swapped) notes.push('⇄ low/high were reversed on flagged rows');
+  const noteH=notes.length?16:0, maxLab=d3.max(data,d=>d.label.length)||4;
+  const m={t:34+noteH,r:46,b:28,l:Math.min(190,maxLab*7.2+16)};
+  const rowH=Math.max(30,Math.min(50,470/data.length)); const H=m.t+m.b+data.length*rowH;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const ext=[d3.min(data,d=>d.lo), d3.max(data,d=>d.hi)], pad=(ext[1]-ext[0])*0.12||1;
+  const x=d3.scaleLinear().domain([ext[0]-pad,ext[1]+pad]).nice().range([m.l+40,W-m.r-40]); const g=svg.append('g');
+  x.ticks(5).forEach(t=>{ g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',m.t-8).attr('y2',H-m.b+2).attr('stroke',c.grid);
+    g.append('text').attr('class','cv-axis').attr('x',x(t)).attr('y',m.t-14).attr('text-anchor','middle').attr('fill',c.inkSoft).text(fmt(t)); });
+  if(notes.length) g.append('text').attr('x',m.l-12).attr('y',12).attr('fill',c.inkSoft).attr('font-size','11px').attr('font-style','italic').text(notes.join('  ·  '));
+  data.forEach((d,i)=>{
+    const yy=m.t+i*rowH+rowH/2, hot=i===0, col=hot?c.accent:mix(c.ink,c.bg,0.45), len=x(d.hi)-x(d.lo);
+    g.append('text').attr('class','cv-in').style('--d',(i*0.05)+'s').attr('x',m.l-12).attr('y',yy).attr('text-anchor','end').attr('dominant-baseline','middle')
+      .attr('fill',hot?c.ink:c.inkSoft).attr('font-size','12.5px').attr('font-weight',hot?600:400).text((d.sw?'⇄ ':'')+(d.label.length>22?d.label.slice(0,21)+'…':d.label));
+    // span capsule — grows in via stroke-dashoffset; thick rounded line = the emphasised span
+    g.append('line').attr('class','cv-draw').style('--len',len).style('--d',(i*0.05)+'s')
+      .attr('stroke-dasharray',len).attr('stroke-dashoffset',len)
+      .attr('x1',x(d.lo)).attr('y1',yy).attr('x2',x(d.hi)).attr('y2',yy)
+      .attr('stroke',mix(col,c.bg,hot?0.3:0.55)).attr('stroke-width',Math.min(14,rowH*0.42)).attr('stroke-linecap','round');
+    // end dots (interactive)
+    g.append('circle').attr('class','cv-mark cv-in').style('--d',(i*0.05+0.45)+'s').attr('cx',x(d.lo)).attr('cy',yy).attr('r',5).attr('fill',mix(c.ink,c.bg,0.4))
+      .attr('data-label',d.label+' · '+kLo).attr('data-value',fmt(d.lo));
+    g.append('circle').attr('class','cv-mark cv-in').style('--d',(i*0.05+0.5)+'s').attr('cx',x(d.hi)).attr('cy',yy).attr('r',6).attr('fill',col)
+      .attr('data-label',d.label+' · '+kHi).attr('data-value',fmt(d.hi));
+    // both end values printed at the ends
+    g.append('text').attr('class','cv-val cv-in').style('--d',(i*0.05+0.45)+'s').attr('x',x(d.lo)-10).attr('y',yy).attr('text-anchor','end').attr('dominant-baseline','middle')
+      .attr('fill',c.inkSoft).attr('font-size','11.5px').text(fmt(d.lo));
+    g.append('text').attr('class','cv-val cv-in').style('--d',(i*0.05+0.5)+'s').attr('x',x(d.hi)+10).attr('y',yy).attr('text-anchor','start').attr('dominant-baseline','middle')
+      .attr('fill',hot?c.accent:c.inkSoft).attr('font-size','11.5px').attr('font-weight',hot?600:400).text(fmt(d.hi));
+  });
+  return {n:data.length};
+}
+
+// CANDLESTICK — vertical wick (low–high) + thicker body (two middle values) per category.
+// Financial OHLC (direction-coloured) when O/H/L/C headers present; otherwise a 4-value general
+// range (min, mid-low, mid-high, max) or a 3-value simplified mode (wick=min..max, body=marker at typical).
+function renderCandlestick(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,nums=ctx.nums,cat=ctx.cat;
+  if(nums.length<3) return renderRange(svg,ctx);
+  const names=nums.map(n=>n.name.toLowerCase());
+  const findIdx=(...keys)=>names.findIndex(nm=>keys.some(k=>nm.includes(k)));
+  const fin = nums.length>=4 && findIdx('open')>=0 && findIdx('close')>=0 && findIdx('high')>=0 && findIdx('low')>=0;
+  let recs;
+  if(fin){
+    const oi=findIdx('open'), hi=findIdx('high'), lo=findIdx('low'), ci=findIdx('close');
+    recs=ctx.rows.map((r,i)=>{ const o=+r[nums[oi].name],h=+r[nums[hi].name],l=+r[nums[lo].name],cl=+r[nums[ci].name];
+      return {label:_lab(r,cat,i), low:Math.min(h,l), high:Math.max(h,l), bBot:Math.min(o,cl), bTop:Math.max(o,cl), up:cl>=o, open:o, close:cl, high0:h, low0:l, fin:true}; });
+  } else if(nums.length>=4){
+    recs=ctx.rows.map((r,i)=>{ const v=nums.slice(0,4).map(n=>+r[n.name]); const s=v.slice().sort((a,b)=>a-b);
+      return {label:_lab(r,cat,i), low:s[0], high:s[3], bBot:s[1], bTop:s[2], up:true, ordered:v[0]<=v[1]&&v[1]<=v[2]&&v[2]<=v[3]}; });
+  } else {
+    recs=ctx.rows.map((r,i)=>{ const a=+r[nums[0].name],b=+r[nums[1].name],cc=+r[nums[2].name];
+      return {label:_lab(r,cat,i), low:Math.min(a,cc), high:Math.max(a,cc), typical:b, simplified:true, ordered:a<=b&&b<=cc}; });
+  }
+  recs=recs.filter(d=>!isNaN(d.low)&&!isNaN(d.high));
+  if(!recs.length) return renderRange(svg,ctx);
+  const flagged=recs.some(d=> d.simplified ? (d.typical<d.low||d.typical>d.high) : (!d.fin && d.ordered===false));
+  const noteH=flagged?16:0, H=440, m={t:30+noteH,r:24,b:46,l:56};
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const allV=recs.flatMap(d=>d.simplified?[d.low,d.high,d.typical]:[d.low,d.high,d.bBot,d.bTop]);
+  const y=d3.scaleLinear().domain(d3.extent(allV)).nice().range([H-m.b,m.t]);
+  const x=d3.scaleBand().domain(recs.map((d,i)=>i)).range([m.l,W-m.r]).padding(0.42);
+  const g=svg.append('g');
+  y.ticks(5).forEach(t=>{ g.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t)).attr('stroke',c.grid);
+    g.append('text').attr('class','cv-axis').attr('x',m.l-8).attr('y',y(t)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.inkSoft).text(fmt(t)); });
+  if(flagged) g.append('text').attr('x',m.l).attr('y',16).attr('fill',c.accent).attr('font-size','11px').attr('font-style','italic').text('⚠ some rows have values out of expected order');
+  const bw=x.bandwidth(), wickW=Math.max(1.4,Math.min(2.4,bw*0.14));
+  recs.forEach((d,i)=>{
+    const cx=x(i)+bw/2, wlen=Math.abs(y(d.low)-y(d.high));
+    // wick (draws in)
+    g.append('line').attr('class','cv-draw').style('--len',wlen).style('--d',(i*0.05)+'s')
+      .attr('stroke-dasharray',wlen).attr('stroke-dashoffset',wlen)
+      .attr('x1',cx).attr('x2',cx).attr('y1',y(d.high)).attr('y2',y(d.low)).attr('stroke',c.ink).attr('stroke-width',wickW);
+    if(d.simplified){
+      g.append('rect').attr('class','cv-mark cv-in').style('--d',(i*0.05+0.3)+'s').attr('x',cx-bw/2).attr('y',y(d.typical)-3.5).attr('width',bw).attr('height',7).attr('rx',2).attr('fill',c.accent)
+        .attr('data-label',d.label).attr('data-value','min '+fmt(d.low)+' · typical '+fmt(d.typical)+' · max '+fmt(d.high));
+    } else {
+      const bTop=y(d.bTop), bBot=y(d.bBot), bH=Math.max(2,bBot-bTop), fill=d.up?c.ink:c.accent;
+      g.append('rect').attr('class','cv-mark cv-in').style('--d',(i*0.05+0.3)+'s').attr('x',cx-bw/2).attr('y',bTop).attr('width',bw).attr('height',bH).attr('rx',2)
+        .attr('fill',fill).attr('stroke',c.bg).attr('stroke-width',0.75)
+        .attr('data-label',d.label).attr('data-value', d.fin?'O '+fmt(d.open)+' · H '+fmt(d.high0)+' · L '+fmt(d.low0)+' · C '+fmt(d.close):fmt(d.low)+'–'+fmt(d.high));
+    }
+    g.append('text').attr('x',cx).attr('y',H-m.b+16).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(String(d.label).length>8?String(d.label).slice(0,7)+'…':d.label);
+    // static labels: High, Low (+ Close for financial) where space allows
+    if(ctx.static){
+      g.append('text').attr('class','cv-staticlabel').attr('x',cx).attr('y',y(d.high)-5).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','9.5px').attr('font-weight',600).text(fmt(d.high));
+      g.append('text').attr('class','cv-staticlabel').attr('x',cx).attr('y',y(d.low)+11).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','9.5px').attr('font-weight',600).text(fmt(d.low));
+      if(d.fin) g.append('text').attr('class','cv-staticlabel').attr('x',cx+bw/2+3).attr('y',y(d.close)).attr('dominant-baseline','middle').attr('fill',d.up?c.ink:c.accent).attr('font-size','9px').attr('font-weight',600).text('C '+fmt(d.close));
+    }
+  });
+  return {n:recs.length};
+}
+
+// BARCODE — distribution strip: thin vertical lines positioned BY VALUE along one horizontal axis,
+// opacity lowered so overlaps build visible density. Optional Category groups stack as shared-axis strips.
+function renderBarcode(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,num=ctx.num,cat=ctx.cat;
+  if(num==null) return renderBeeswarm(svg,ctx);
+  const grouped = cat!=null;
+  let groups;
+  if(grouped){
+    const map=new Map();
+    ctx.rows.forEach(r=>{ const k=String(r[cat]); const v=+r[num]; if(isNaN(v))return; if(!map.has(k))map.set(k,[]); map.get(k).push(v); });
+    groups=[...map.entries()].map(([label,values])=>({label,values}));
+  } else {
+    groups=[{label:null, values:ctx.rows.map(r=>+r[num]).filter(v=>!isNaN(v))}];
+  }
+  groups=groups.filter(g=>g.values.length);
+  if(!groups.length) return renderBeeswarm(svg,ctx);
+  const single=groups.length===1, allV=groups.flatMap(g=>g.values);
+  const maxLab=grouped?(d3.max(groups,g=>(g.label||'').length)||4):0;
+  const m={t:48,r:30,b:54,l:grouped?Math.min(170,maxLab*7.2+16):30};
+  const stripH=single?150:Math.max(34,Math.min(64,300/groups.length)), gap=single?0:14;
+  const H=m.t+m.b+groups.length*stripH+(groups.length-1)*gap;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const ext=d3.extent(allV), pad=(ext[1]-ext[0])*0.04||1;
+  const x=d3.scaleLinear().domain([ext[0]-pad,ext[1]+pad]).nice().range([m.l,W-m.r]); const g=svg.append('g');
+  // shared horizontal axis
+  g.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',H-m.b+10).attr('y2',H-m.b+10).attr('stroke',c.line);
+  x.ticks(6).forEach(t=>{ g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',H-m.b+10).attr('y2',H-m.b+15).attr('stroke',c.line);
+    g.append('text').attr('class','cv-axis').attr('x',x(t)).attr('y',H-m.b+30).attr('text-anchor','middle').attr('fill',c.inkSoft).text(fmt(t)); });
+  g.append('text').attr('x',W-m.r).attr('y',m.t-24).attr('text-anchor','end').attr('fill',c.inkSoft).attr('font-size','11px').text(allV.length+' value'+(allV.length===1?'':'s'));
+  groups.forEach((grp,gi)=>{
+    const yTop=m.t+gi*(stripH+gap), yBot=yTop+stripH;
+    const op=Math.max(0.14,Math.min(0.72, 16/grp.values.length+0.12));   // denser data → fainter lines
+    if(grouped) g.append('text').attr('x',m.l-12).attr('y',(yTop+yBot)/2).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px')
+      .text((grp.label||'').length>22?grp.label.slice(0,21)+'…':grp.label);
+    grp.values.forEach((v,vi)=>{
+      g.append('line').attr('class','cv-mark cv-in').style('--d',(gi*0.1+Math.min(vi,120)*0.004)+'s')
+        .attr('x1',x(v)).attr('x2',x(v)).attr('y1',yTop).attr('y2',yBot).attr('stroke',c.accent).attr('stroke-width',1.4).attr('stroke-opacity',op)
+        .attr('data-label',grp.label?grp.label:'value').attr('data-value',fmt(v));
+    });
+    // min / median / max markers (labelled in single mode, subtle ticks when grouped)
+    const sorted=grp.values.slice().sort(d3.ascending), mn=sorted[0], md=d3.quantile(sorted,0.5), mx=sorted[sorted.length-1];
+    [['min',mn],['median',md],['max',mx]].forEach(([lbl,val])=>{
+      if(val==null) return;
+      g.append('line').attr('x1',x(val)).attr('x2',x(val)).attr('y1',yTop-6).attr('y2',yBot+6).attr('stroke',c.ink).attr('stroke-width',1.2).attr('stroke-dasharray','2 3').attr('opacity',single?0.85:0.4);
+      if(single) g.append('text').attr('x',x(val)).attr('y',yTop-12).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','10.5px').attr('font-weight',600).text(lbl+' '+fmt(val));
+    });
+  });
+  return {n:allV.length};
 }
 
 /* ---- DISTRIBUTION ---- */
@@ -1475,56 +1815,181 @@ function renderViolin(svg,ctx){
 }
 
 /* ---- PART OF A WHOLE ---- */
+/* ===================================================================
+   BATCH 3 — hierarchy & flow input handling
+   Hierarchy charts (treemap, circle pack, sunburst): Parent, Child, Value
+   Marimekko: Column, Segment, Value      Sankey: Source, Target, Value
+   A blank first column denotes a top-level node. Flat data falls back or
+   shows a format hint rather than rendering nonsense.
+   =================================================================== */
+const FLOW_FORMATS = {
+  treemap:  ['Parent, Child, Value', [', Technology, 0','Technology, Cloud, 120','Technology, Devices, 80']],
+  pack:     ['Parent, Child, Value', [', Technology, 0','Technology, Cloud, 120','Technology, Devices, 80']],
+  sunburst: ['Parent, Child, Value', [', Technology, 0','Technology, Cloud, 120','Technology, Devices, 80']],
+  marimekko:['Column, Segment, Value', ['North, Product A, 40','North, Product B, 30','South, Product A, 60']],
+  sankey:   ['Source, Target, Value', ['Awareness, Consideration, 1000','Consideration, Trial, 600','Trial, Purchase, 300']]
+};
+// graceful failure — draw the expected format + a one-line example into the chart area
+function formatHint(svg, ctx, type){
+  const c=ctx.c, W=ctx.W, H=360; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const spec=FLOW_FORMATS[type]||['Parent, Child, Value',[]];
+  const g=svg.append('g').attr('transform',`translate(${W/2},${H/2-48})`);
+  g.append('text').attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','15px').attr('font-weight',600)
+    .text('A '+(TYPE_NAMES[type]||type)+' needs structured data');
+  g.append('text').attr('y',26).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','12.5px')
+    .text('Use three columns:  '+spec[0]);
+  const box=g.append('g').attr('transform','translate(0,48)');
+  box.append('text').attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-family','ui-monospace,Menlo,monospace').attr('font-size','12px').attr('opacity',.9).text(spec[0]);
+  spec[1].forEach((ln,i)=> box.append('text').attr('y',20+i*18).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-family','ui-monospace,Menlo,monospace').attr('font-size','12px').attr('opacity',.78).text(ln));
+  g.append('text').attr('y',58+spec[1].length*18+24).attr('text-anchor','middle').attr('fill',c.accent).attr('font-size','12px').attr('font-style','italic')
+    .text('Paste data in this shape, or choose a different chart.');
+  return {n:0};
+}
+// build a nested {name,children,value} tree from Parent/Child/Value rows.
+// leaves take their stated value; internal nodes take the sum of their children (and flag any mismatch).
+function buildHierarchy(rows, pk, ck, vk){
+  // names that appear as a Parent are structural ids (unique by name so children attach to them);
+  // every other Child is a leaf with its own identity, so the same leaf name can sit under two parents.
+  const parentNames=new Set();
+  rows.forEach(r=>{ const pn=String(r[pk]==null?'':r[pk]).trim(); if(pn) parentNames.add(pn); });
+  const named=new Map(), all=[];
+  const getNamed=name=>{ if(!named.has(name)){ const n={name,children:[],stated:null,parent:null}; named.set(name,n); all.push(n); } return named.get(name); };
+  rows.forEach(r=>{
+    const cn=String(r[ck]==null?'':r[ck]).trim(); if(!cn) return;
+    const pn=String(r[pk]==null?'':r[pk]).trim();
+    const v=+r[vk]; let node;
+    if(parentNames.has(cn)){ node=getNamed(cn); if(!isNaN(v)) node.stated=(node.stated||0)+v; }
+    else { node={name:cn,children:[],stated:isNaN(v)?0:v,parent:null}; all.push(node); }
+    if(pn && pn!==cn){ const p=getNamed(pn); if(p.children.indexOf(node)<0) p.children.push(node); node.parent=p; }
+  });
+  const roots=all.filter(n=>!n.parent);
+  let mismatch=false, depth=1;
+  function val(n, d, anc){
+    depth=Math.max(depth,d);
+    if(anc.has(n)){ return 0; }                              // cycle guard
+    if(!n.children.length){ n.value=Math.max(0,n.stated||0); return n.value; }
+    anc.add(n); const s=n.children.reduce((a,c)=>a+val(c,d+1,anc),0); anc.delete(n);
+    if(n.stated!=null && n.stated!==0 && Math.abs(n.stated-s)>Math.max(0.5,Math.abs(s)*0.01)) mismatch=true;
+    n.value=s; return s;
+  }
+  roots.forEach(r=>val(r,1,new Set()));
+  return { root:{name:'',children:roots}, mismatch, depth, count:all.length };
+}
+// resolve a Parent/Child/Value hierarchy, or a flat single-level fallback, or null (→ hint)
+function resolveHierarchy(ctx){
+  const cats=ctx.cats||[], nums=ctx.nums||[];
+  if(nums.length<1) return null;
+  if(cats.length>=2){
+    const h=buildHierarchy(ctx.rows, cats[0].name, cats[1].name, nums[0].name);
+    const root=d3.hierarchy(h.root).sum(d=> d.children&&d.children.length?0:(d.value||0)).sort((a,b)=>b.value-a.value);
+    if(!root.value) return null;
+    return {root, mismatch:h.mismatch, depth:h.depth, twoLevel:root.height>=2};
+  }
+  if(ctx.cat){
+    const data=flatData(ctx).filter(d=>d.value>0);
+    if(!data.length) return null;
+    const root=d3.hierarchy({name:'',children:data.map(d=>({name:d.label,value:d.value,children:[]}))}).sum(d=> d.children&&d.children.length?0:(d.value||0)).sort((a,b)=>b.value-a.value);
+    return {root, mismatch:false, depth:1, twoLevel:false};
+  }
+  return null;
+}
+// shade a child within its group's base colour
+function shadeOf(base, bg, idx){ return mix(base, bg, 0.12 + Math.min(idx,6)*0.12); }
+
 function renderTreemap(svg,ctx){
   const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=520;
-  const data=flatData(ctx).filter(d=>d.value>0);
-  if(!data.length) return renderRadial(svg,ctx);
+  const H0=resolveHierarchy(ctx); if(!H0) return formatHint(svg,ctx,'treemap');
   svg.attr('viewBox',`0 0 ${W} ${H}`);
-  const root=d3.hierarchy({children:data}).sum(d=>d.value).sort((a,b)=>b.value-a.value);
-  d3.treemap().size([W,H]).paddingInner(3).round(true)(root);
-  const col=palOf(c), tot=root.value;
-  root.leaves().forEach((leaf,i)=>{
-    const g=svg.append('g').attr('transform',`translate(${leaf.x0},${leaf.y0})`);
-    const w=leaf.x1-leaf.x0, h=leaf.y1-leaf.y0, tc=contrastInk(col(i));
-    g.append('rect').attr('class','cv-mark').attr('width',w).attr('height',h).attr('rx',4).attr('fill',col(i)).attr('data-label',leaf.data.label).attr('data-value',fmt(leaf.value)+' ('+Math.round(leaf.value/tot*100)+'%)');
-    if(w>52&&h>26){ g.append('text').attr('x',8).attr('y',18).attr('fill',tc).attr('font-size','12.5px').attr('font-weight',600).text(leaf.data.label.slice(0,Math.floor(w/8)));
-      if(h>44) g.append('text').attr('x',8).attr('y',34).attr('fill',tc).attr('opacity',.85).attr('font-size','11px').text(fmt(leaf.value)); }
+  const root=H0.root, twoLevel=H0.twoLevel, tot=root.value, col=palOf(c);
+  d3.treemap().size([W,H]).paddingOuter(2).paddingTop(twoLevel?20:2).paddingInner(2).round(true)(root);
+  const groups=root.children||[]; groups.forEach((grp,gi)=> grp._base=col(gi));
+  if(twoLevel) groups.forEach(grp=>{
+    const x0=grp.x0,y0=grp.y0,w=grp.x1-grp.x0;
+    svg.append('rect').attr('x',x0).attr('y',y0).attr('width',w).attr('height',grp.y1-grp.y0).attr('fill','none').attr('stroke',mix(grp._base,c.bg,.25)).attr('stroke-width',1).attr('rx',5);
+    if(w>44) svg.append('text').attr('x',x0+7).attr('y',y0+14).attr('fill',mix(grp._base,c.ink,.35)).attr('font-size','11.5px').attr('font-weight',700)
+      .text(grp.data.name.length>Math.floor(w/8)?grp.data.name.slice(0,Math.floor(w/8)-1)+'…':grp.data.name);
   });
-  return {n:data.length};
+  root.leaves().forEach((leaf,i)=>{
+    const grp=twoLevel?leaf.parent:null, base=grp?grp._base:col(i);
+    const fill=twoLevel? shadeOf(base,c.bg, grp.children.indexOf(leaf)) : col(i);
+    const x0=leaf.x0,y0=leaf.y0,w=leaf.x1-leaf.x0,h=leaf.y1-leaf.y0, tc=contrastInk(fill);
+    const g=svg.append('g').attr('class','cv-in').style('--d',(i*0.02)+'s').attr('transform',`translate(${x0},${y0})`);
+    g.append('rect').attr('class','cv-mark').attr('width',w).attr('height',h).attr('rx',3).attr('fill',fill)
+      .attr('data-label',leaf.data.name+(grp?' · '+grp.data.name:'')).attr('data-value',fmt(leaf.value)+' ('+Math.round(leaf.value/tot*100)+'%)');
+    if(w>52&&h>26){ g.append('text').attr('x',7).attr('y',17).attr('fill',tc).attr('font-size','12px').attr('font-weight',600).text(leaf.data.name.slice(0,Math.floor(w/8)));
+      if(h>42) g.append('text').attr('x',7).attr('y',33).attr('fill',tc).attr('opacity',.85).attr('font-size','11px').text(fmt(leaf.value)); }
+  });
+  if(H0.mismatch) svg.append('text').attr('x',8).attr('y',H-7).attr('fill',c.accent).attr('font-size','10.5px').attr('font-style','italic').text('⚠ a parent total differed from its children — children’s sum used');
+  return {n:root.leaves().length};
 }
 function renderSunburst(svg,ctx){
   const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=540;
-  const data=flatData(ctx).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
-  if(!data.length) return renderRadial(svg,ctx);
+  const H0=resolveHierarchy(ctx); if(!H0) return formatHint(svg,ctx,'sunburst');
   svg.attr('viewBox',`0 0 ${W} ${H}`);
-  const cx=W/2,cy=H/2,R=Math.min(W,H)/2-30,r0=R*0.42,tot=d3.sum(data,d=>d.value),col=palOf(c);
-  let a0=-Math.PI/2; const arc=d3.arc().innerRadius(r0).outerRadius(R).padAngle(0.008).cornerRadius(2);
+  const root=H0.root, tot=root.value, col=palOf(c);
+  const capped=root.height>3, maxD=Math.min(root.height,3);          // cap at ~3 rings
+  d3.partition().size([2*Math.PI, maxD+1])(root);
+  const cx=W/2, cy=H/2, R=Math.min(W,H)/2-26, r0=Math.max(46,R*0.30);
+  const ringIn=d=> r0+(d.depth-1)/maxD*(R-r0), ringOut=d=> r0+(d.depth)/maxD*(R-r0);
+  const arc=d3.arc().startAngle(d=>d.x0).endAngle(d=>d.x1).padAngle(.006).cornerRadius(2)
+    .innerRadius(d=> d.depth===0?0:ringIn(d)).outerRadius(d=> d.depth===0?r0:ringOut(d));
   const g=svg.append('g').attr('transform',`translate(${cx},${cy})`);
-  data.forEach((d,i)=>{
-    const a1=a0+d.value/tot*2*Math.PI;
-    g.append('path').attr('class','cv-mark').attr('d',arc({startAngle:a0,endAngle:a1})).attr('fill',col(i)).attr('data-label',d.label).attr('data-value',fmt(d.value)+' ('+Math.round(d.value/tot*100)+'%)');
-    const mid=(a0+a1)/2, lr=(r0+R)/2;
-    if(a1-a0>0.18) g.append('text').attr('x',Math.sin(mid)*lr).attr('y',-Math.cos(mid)*lr).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',contrastInk(col(i))).attr('font-size','11px').text(d.label.length>10?d.label.slice(0,9)+'…':d.label);
-    a0=a1;
+  root.descendants().forEach((d,i)=>{
+    if(d.depth===0 || d.depth>maxD) return;
+    const top=d.depth===1?d:d.ancestors().find(a=>a.depth===1); const gi=root.children.indexOf(top);
+    const base=col(gi<0?0:gi), fill=d.depth===1?base:shadeOf(base,c.bg, d.parent.children.indexOf(d));
+    g.append('path').attr('class','cv-mark cv-in').style('--d',(i*0.02)+'s').attr('d',arc(d)).attr('fill',fill)
+      .attr('data-label',d.ancestors().filter(a=>a.depth).reverse().map(a=>a.data.name).join(' · ')).attr('data-value',fmt(d.value)+' ('+Math.round(d.value/tot*100)+'%)');
+    if(d.x1-d.x0>0.16){ const mid=(d.x0+d.x1)/2, lr=(ringIn(d)+ringOut(d))/2;
+      g.append('text').attr('class','cv-in').style('--d',(0.3+i*0.02)+'s').attr('x',Math.sin(mid)*lr).attr('y',-Math.cos(mid)*lr).attr('text-anchor','middle').attr('dominant-baseline','middle')
+        .attr('fill',contrastInk(fill)).attr('font-size','10.5px').text(d.data.name.length>11?d.data.name.slice(0,10)+'…':d.data.name); }
   });
-  g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','13px').text('Total '+fmt(tot));
-  return {n:data.length};
+  g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','13px').attr('font-weight',600).text(fmt(tot));
+  g.append('text').attr('text-anchor','middle').attr('y',16).attr('fill',c.inkSoft).attr('font-size','10.5px').text('total');
+  if(capped) svg.append('text').attr('x',8).attr('y',H-7).attr('fill',c.accent).attr('font-size','10.5px').attr('font-style','italic').text('⚠ hierarchy deeper than 3 levels — capped for readability');
+  return {n:root.leaves().length};
 }
 function renderMarimekko(svg,ctx){
-  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=420;
-  const data=flatData(ctx).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
-  if(!data.length) return renderRadial(svg,ctx);
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=440;
+  const cats=ctx.cats||[], nums=ctx.nums||[];
+  let columns=[], segments=[], matrix={}, flag=false;
+  if(cats.length>=2 && nums.length>=1){                              // long: Column, Segment, Value
+    const ck=cats[0].name, sk=cats[1].name, vk=nums[0].name;
+    ctx.rows.forEach(r=>{ const cn=String(r[ck]==null?'':r[ck]).trim(), sn=String(r[sk]==null?'':r[sk]).trim(), v=+r[vk];
+      if(!cn||!sn||isNaN(v)) return; if(columns.indexOf(cn)<0)columns.push(cn); if(segments.indexOf(sn)<0)segments.push(sn);
+      (matrix[cn]=matrix[cn]||{})[sn]=(matrix[cn][sn]||0)+v; });
+  } else if(nums.length>=2 && ctx.cat){                             // wide fallback: each numeric column is a segment
+    const ck=ctx.cat; segments=nums.map(n=>n.name);
+    ctx.rows.forEach(r=>{ const cn=String(r[ck]==null?'':r[ck]).trim(); if(!cn) return; if(columns.indexOf(cn)<0)columns.push(cn);
+      matrix[cn]=matrix[cn]||{}; nums.forEach(n=>matrix[cn][n.name]=(+r[n.name])||0); });
+  } else return formatHint(svg,ctx,'marimekko');
+  if(!columns.length || !segments.length) return formatHint(svg,ctx,'marimekko');
+  columns.forEach(cn=>segments.forEach(sn=>{ if(matrix[cn][sn]==null){ matrix[cn][sn]=0; flag=true; } }));
+  const colTot=columns.map(cn=>d3.sum(segments,sn=>matrix[cn][sn])), grand=d3.sum(colTot);
+  if(!grand) return formatHint(svg,ctx,'marimekko');
   svg.attr('viewBox',`0 0 ${W} ${H}`);
-  const m={t:20,r:20,b:50,l:20}, tot=d3.sum(data,d=>d.value), col=palOf(c);
-  let x=m.l; const innerW=W-m.l-m.r, top=m.t, bot=H-m.b;
-  data.forEach((d,i)=>{
-    const w=d.value/tot*innerW;
-    svg.append('rect').attr('class','cv-mark').attr('x',x).attr('y',top).attr('width',Math.max(0,w-2)).attr('height',bot-top).attr('fill',col(i)).attr('data-label',d.label).attr('data-value',fmt(d.value)+' ('+Math.round(d.value/tot*100)+'%)');
-    if(w>40){ svg.append('text').attr('x',x+w/2-1).attr('y',(top+bot)/2).attr('text-anchor','middle').attr('fill',contrastInk(col(i))).attr('font-size','12px').attr('font-weight',600).text(d.label.length>12?d.label.slice(0,11)+'…':d.label);
-      svg.append('text').attr('x',x+w/2-1).attr('y',bot+18).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(Math.round(d.value/tot*100)+'%'); }
-    x+=w;
+  const m={t:42,r:14,b:52,l:14}, innerW=W-m.l-m.r, top=m.t, bot=H-m.b, col=palOf(c);
+  const segColor={}; segments.forEach((sn,i)=>segColor[sn]=col(i));
+  let x=m.l;
+  columns.forEach((cn,ci)=>{
+    const cw=colTot[ci]/grand*innerW, ct=colTot[ci]; let y=top;
+    svg.append('text').attr('x',x+cw/2).attr('y',top-22).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11.5px').attr('font-weight',600).text(cn.length>Math.floor(cw/7)?cn.slice(0,Math.floor(cw/7)):cn);
+    svg.append('text').attr('x',x+cw/2).attr('y',top-8).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','10.5px').text(Math.round(ct/grand*100)+'% of total');
+    segments.forEach(sn=>{ const v=matrix[cn][sn], frac=ct?v/ct:0, sh=frac*(bot-top); if(sh<=0) return;
+      svg.append('rect').attr('class','cv-mark cv-in').style('--d',(ci*0.05)+'s').attr('x',x).attr('y',y).attr('width',Math.max(0,cw-1)).attr('height',sh).attr('fill',segColor[sn])
+        .attr('data-label',cn+' · '+sn).attr('data-value',fmt(v)+' ('+Math.round(frac*100)+'%)');
+      if(cw>34 && sh>15) svg.append('text').attr('x',x+cw/2).attr('y',y+sh/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',contrastInk(segColor[sn])).attr('font-size','10.5px').attr('font-weight',600).text(Math.round(frac*100)+'%');
+      y+=sh; });
+    x+=cw;
   });
-  return {n:data.length};
+  // segment legend along the bottom
+  let lx=m.l;
+  segments.forEach((sn,i)=>{ const lab=sn.length>16?sn.slice(0,15)+'…':sn, wEst=lab.length*6.4+22;
+    if(lx+wEst>W-m.r){ return; }
+    svg.append('rect').attr('x',lx).attr('y',bot+14).attr('width',11).attr('height',11).attr('rx',2).attr('fill',segColor[sn]);
+    svg.append('text').attr('x',lx+16).attr('y',bot+23).attr('fill',c.inkSoft).attr('font-size','11px').text(lab); lx+=wEst+8; });
+  if(flag) svg.append('text').attr('x',m.l).attr('y',H-6).attr('fill',c.accent).attr('font-size','10px').attr('font-style','italic').text('⚠ missing segments filled with zero');
+  return {n:columns.length*segments.length};
 }
 function renderIsotype(svg,ctx){
   const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
@@ -1547,20 +2012,31 @@ function renderIsotype(svg,ctx){
   svg.append('text').attr('x',0).attr('y',H-6).attr('fill',c.inkSoft).attr('font-size','11px').text('1 figure = '+fmt(unit));
   return {n:data.length};
 }
+// CIRCLE PACKING / circular treemap — nested circles (Parent, Child, Value). Group bubbles
+// hold child circles; flat data packs as a single level.
 function renderPack(svg,ctx){
   const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=520;
-  const data=flatData(ctx).filter(d=>d.value>0);
-  if(!data.length) return renderRadial(svg,ctx);
+  const H0=resolveHierarchy(ctx); if(!H0) return formatHint(svg,ctx,'pack');
   svg.attr('viewBox',`0 0 ${W} ${H}`);
-  const root=d3.hierarchy({children:data}).sum(d=>d.value).sort((a,b)=>b.value-a.value);
-  d3.pack().size([W-4,H-4]).padding(4)(root); const col=palOf(c);
+  const root=H0.root, twoLevel=H0.twoLevel, tot=root.value, col=palOf(c);
+  d3.pack().size([W-4,H-4]).padding(twoLevel?9:4)(root);
+  const g0=svg.append('g').attr('transform','translate(2,2)');
+  // group bubbles first (faint container with a name)
+  if(twoLevel) (root.children||[]).forEach((grp,gi)=>{ grp._base=col(gi);
+    g0.append('circle').attr('cx',grp.x).attr('cy',grp.y).attr('r',grp.r).attr('fill',mix(grp._base,c.bg,.86)).attr('stroke',mix(grp._base,c.bg,.45)).attr('stroke-width',1);
+    if(grp.r>30) g0.append('text').attr('x',grp.x).attr('y',grp.y-grp.r+15).attr('text-anchor','middle').attr('fill',mix(grp._base,c.ink,.4)).attr('font-size','11.5px').attr('font-weight',700).text(grp.data.name.length>14?grp.data.name.slice(0,13)+'…':grp.data.name);
+  });
   root.leaves().forEach((leaf,i)=>{
-    const g=svg.append('g').attr('transform',`translate(${leaf.x+2},${leaf.y+2})`), tc=contrastInk(col(i));
-    g.append('circle').attr('class','cv-mark').attr('r',leaf.r).attr('fill',col(i)).attr('fill-opacity',.9).attr('data-label',leaf.data.label).attr('data-value',fmt(leaf.value));
-    if(leaf.r>22){ g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',tc).attr('font-size',Math.min(14,leaf.r/2.4)+'px').attr('font-weight',600).text(leaf.data.label.length>9?leaf.data.label.slice(0,8)+'…':leaf.data.label);
+    const grp=twoLevel?leaf.parent:null, base=grp?grp._base:col(i);
+    const fill=twoLevel? shadeOf(base,c.bg, grp.children.indexOf(leaf)) : col(i), tc=contrastInk(fill);
+    const g=svg.append('g').attr('class','cv-in').style('--d',(i*0.02)+'s').attr('transform',`translate(${leaf.x+2},${leaf.y+2})`);
+    g.append('circle').attr('class','cv-mark').attr('r',leaf.r).attr('fill',fill).attr('fill-opacity',.95)
+      .attr('data-label',leaf.data.name+(grp?' · '+grp.data.name:'')).attr('data-value',fmt(leaf.value)+' ('+Math.round(leaf.value/tot*100)+'%)');
+    if(leaf.r>22){ g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',tc).attr('font-size',Math.min(14,leaf.r/2.4)+'px').attr('font-weight',600).text(leaf.data.name.length>9?leaf.data.name.slice(0,8)+'…':leaf.data.name);
       if(leaf.r>34) g.append('text').attr('text-anchor','middle').attr('y',16).attr('fill',tc).attr('opacity',.85).attr('font-size','11px').text(fmt(leaf.value)); }
   });
-  return {n:data.length};
+  if(H0.mismatch) svg.append('text').attr('x',8).attr('y',H-7).attr('fill',c.accent).attr('font-size','10.5px').attr('font-style','italic').text('⚠ a parent total differed from its children — children’s sum used');
+  return {n:root.leaves().length};
 }
 function renderPropCircles(svg,ctx){
   const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
@@ -1579,6 +2055,8 @@ function renderPropCircles(svg,ctx){
 }
 
 /* ---- CHANGE OVER TIME ---- */
+// BUMP — rank trajectories over time (Entity, time1, time2, …). Cells may already be ranks
+// (1 = top) or raw values to be ranked per column. Rank shown inside each node; names at both ends.
 function renderBump(svg,ctx){
   const c=ctx.c,fmt=ctx.fmt,W=ctx.W,H=480;
   const {keys,rows}=seriesData(ctx);
@@ -1586,17 +2064,30 @@ function renderBump(svg,ctx){
   const ents=rows.filter(r=>r.vals.every(v=>!isNaN(v)));
   if(ents.length<2) return renderDotstrip(svg,ctx);
   svg.attr('viewBox',`0 0 ${W} ${H}`);
-  const m={t:30,r:120,b:36,l:120}, N=ents.length;
-  const ranks=keys.map((k,pi)=>{ const order=ents.map((e,ei)=>({ei,v:e.vals[pi]})).sort((a,b)=>b.v-a.v); const rk={}; order.forEach((o,idx)=>rk[o.ei]=idx+1); return rk; });
+  const m={t:30,r:128,b:36,l:128}, N=ents.length;
+  // if every column is a permutation of 1..N the cells already ARE ranks (use directly, 1 = top);
+  // otherwise convert values to ranks per column (higher value → rank 1).
+  const isRankData = keys.every((k,pi)=>{ const s=ents.map(e=>e.vals[pi]).slice().sort((a,b)=>a-b); return s.every((v,i)=>v===i+1); });
+  const ranks=keys.map((k,pi)=>{ const rk={};
+    if(isRankData){ ents.forEach((e,ei)=>rk[ei]=e.vals[pi]); }
+    else { ents.map((e,ei)=>({ei,v:e.vals[pi]})).sort((a,b)=>b.v-a.v).forEach((o,idx)=>rk[o.ei]=idx+1); }
+    return rk; });
   const x=d3.scalePoint().domain(keys).range([m.l,W-m.r]), y=d3.scaleLinear().domain([1,N]).range([m.t,H-m.b]), col=palOf(c);
   keys.forEach(k=>svg.append('text').attr('class','cv-axis').attr('x',x(k)).attr('y',H-m.b+22).attr('text-anchor','middle').attr('fill',c.inkSoft).text(k));
   const line=d3.line().x((d,i)=>x(keys[i])).y(d=>y(d)).curve(d3.curveMonotoneX);
   ents.forEach((e,ei)=>{
     const series=keys.map((k,pi)=>ranks[pi][ei]), cc=col(ei);
-    svg.append('path').attr('d',line(series)).attr('fill','none').attr('stroke',cc).attr('stroke-width',3).attr('stroke-linecap','round').attr('opacity',.9);
-    series.forEach((rk,pi)=>svg.append('circle').attr('class','cv-mark').attr('cx',x(keys[pi])).attr('cy',y(rk)).attr('r',5).attr('fill',cc).attr('data-label',e.label+' · '+keys[pi]).attr('data-value','rank '+rk+' · '+fmt(e.vals[pi])));
-    svg.append('text').attr('x',m.l-12).attr('y',y(series[0])).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(e.label.length>14?e.label.slice(0,13)+'…':e.label);
-    svg.append('text').attr('x',W-m.r+12).attr('y',y(series[series.length-1])).attr('dominant-baseline','middle').attr('fill',cc).attr('font-size','12px').text('#'+series[series.length-1]);
+    const path=svg.append('path').attr('class','cv-draw').attr('d',line(series)).attr('fill','none').attr('stroke',cc).attr('stroke-width',3).attr('stroke-linecap','round').attr('opacity',.9);
+    const L=path.node().getTotalLength(); path.style('--len',L).style('--d',(ei*0.05)+'s').attr('stroke-dasharray',L).attr('stroke-dashoffset',L);
+    series.forEach((rk,pi)=>{
+      const node=svg.append('g').attr('class','cv-in').style('--d',(0.45+ei*0.05)+'s');
+      node.append('circle').attr('class','cv-mark').attr('cx',x(keys[pi])).attr('cy',y(rk)).attr('r',9).attr('fill',cc)
+        .attr('data-label',e.label+' · '+keys[pi]).attr('data-value', isRankData?('rank '+rk):('rank '+rk+' · '+fmt(e.vals[pi])));
+      node.append('text').attr('x',x(keys[pi])).attr('y',y(rk)).attr('text-anchor','middle').attr('dominant-baseline','central').attr('fill',contrastInk(cc)).attr('font-size','9px').attr('font-weight',700).attr('pointer-events','none').text(rk);
+    });
+    const nm=e.label.length>15?e.label.slice(0,14)+'…':e.label;
+    svg.append('text').attr('class','cv-in').style('--d',(0.45+ei*0.05)+'s').attr('x',m.l-15).attr('y',y(series[0])).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').attr('font-weight',600).text(nm);
+    svg.append('text').attr('class','cv-in').style('--d',(0.45+ei*0.05)+'s').attr('x',W-m.r+15).attr('y',y(series[series.length-1])).attr('dominant-baseline','middle').attr('fill',cc).attr('font-size','12px').attr('font-weight',600).text(nm);
   });
   return {n:ents.length};
 }
@@ -1699,6 +2190,75 @@ function renderParallel(svg,ctx){
     const sc=yByDim[d]; sc.ticks(5).forEach(t=>svg.append('text').attr('class','cv-axis').attr('x',x(d)-8).attr('y',sc(t)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','10px').text(fmt(t)));
   });
   return {n:ctx.rows.length};
+}
+
+// SANKEY — Source, Target, Value flows. No d3-sankey in the bundle, so this lays out nodes by
+// longest path (cycle-flagged), sizes links by value, and relaxes node Y to reduce crossings.
+function renderSankey(svg,ctx){
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W;
+  const cats=ctx.cats||[], nums=ctx.nums||[];
+  if(cats.length<2 || nums.length<1) return formatHint(svg,ctx,'sankey');
+  const sk=cats[0].name, tk=cats[1].name, vk=nums[0].name;
+  const nodeMap=new Map(), links=[];
+  const node=name=>{ if(!nodeMap.has(name)) nodeMap.set(name,{name,out:[],in:[],depth:0,value:0,yc:0}); return nodeMap.get(name); };
+  ctx.rows.forEach(r=>{ const s=String(r[sk]==null?'':r[sk]).trim(), t=String(r[tk]==null?'':r[tk]).trim(), v=+r[vk];
+    if(!s||!t||isNaN(v)||v<=0) return; const sn=node(s), tn=node(t); const l={source:sn,target:tn,value:v}; links.push(l); sn.out.push(l); tn.in.push(l); });
+  if(!links.length) return formatHint(svg,ctx,'sankey');
+  const nodes=[...nodeMap.values()];
+  // longest-path layering (cycle-guarded — if it doesn't converge there's a cycle)
+  nodes.forEach(n=>n.depth=0); let changed=true, iter=0, cyclic=false;
+  while(changed){ changed=false; links.forEach(l=>{ if(l.target.depth<l.source.depth+1){ l.target.depth=l.source.depth+1; changed=true; } });
+    if(++iter>nodes.length+2){ cyclic=true; break; } }
+  // pull pure-sink nodes to the last layer for a tidier right edge
+  const maxDepth=d3.max(nodes,n=>n.depth);
+  nodes.forEach(n=>{ if(n.out.length===0) n.depth=maxDepth; n.value=Math.max(d3.sum(n.in,l=>l.value), d3.sum(n.out,l=>l.value)); });
+  const H=Math.max(300,Math.min(580, 70+nodes.length*30)); svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const m={t:26,r:14,b:26,l:14}, nodeW=13, labelPad=104;
+  const byDepth=d3.range(maxDepth+1).map(()=>[]); nodes.forEach(n=>byDepth[n.depth].push(n));
+  const x=d3.scaleLinear().domain([0,maxDepth||1]).range([m.l+ (byDepth[0].length?labelPad:0), W-m.r-nodeW-labelPad]);
+  const avail=H-m.t-m.b, gap=12;
+  const busiest=d3.max(byDepth,colN=>d3.sum(colN,n=>n.value))||1;
+  const vScale=(avail - gap*(d3.max(byDepth,colN=>colN.length)-1||0))/busiest;
+  byDepth.forEach(colN=>{ colN.sort((a,b)=>b.value-a.value); colN.forEach(n=>n.h=Math.max(2,n.value*vScale)); let y=m.t; colN.forEach(n=>{ n.yc=y+n.h/2; y+=n.h+gap; }); });
+  // relax toward connected nodes, then resolve overlaps within each column
+  for(let it=0; it<16; it++){ const alpha=0.9*(1-it/18);
+    byDepth.forEach(colN=>{
+      colN.forEach(n=>{ const ls=n.in.concat(n.out); if(ls.length){ const want=d3.mean(ls,l=>(l.source===n?l.target:l.source).yc); n.yc+=(want-n.yc)*alpha; } });
+      colN.sort((a,b)=>a.yc-b.yc); let y=m.t; colN.forEach(n=>{ if(n.yc-n.h/2<y) n.yc=y+n.h/2; y=n.yc+n.h/2+gap; });
+      let over=(y-gap)-(H-m.b); if(over>0){ let yy=H-m.b; for(let k=colN.length-1;k>=0;k--){ const n=colN[k]; if(n.yc+n.h/2>yy) n.yc=yy-n.h/2; yy=n.yc-n.h/2-gap; } }
+    });
+  }
+  nodes.forEach(n=>n.y=n.yc-n.h/2);
+  // stack link endpoints on each node, ordered by the opposite node's position
+  nodes.forEach(n=>{ let so=0; n.out.slice().sort((a,b)=>a.target.yc-b.target.yc).forEach(l=>{ l.w=Math.max(1,l.value*vScale); l.sy=n.y+so; so+=l.w; });
+    let ti=0; n.in.slice().sort((a,b)=>a.source.yc-b.source.yc).forEach(l=>{ l.w=Math.max(1,l.value*vScale); l.ty=n.y+ti; ti+=l.w; }); });
+  const col=palOf(c); nodes.forEach((n,i)=>n._c=col(i));
+  // links (ribbons) under nodes
+  const gl=svg.append('g');
+  links.forEach((l,i)=>{ const x0=x(l.source.depth)+nodeW, x1=x(l.target.depth), xm=(x0+x1)/2;
+    const sy0=l.sy, sy1=l.sy+l.w, ty0=l.ty, ty1=l.ty+l.w;
+    gl.append('path').attr('class','cv-mark cv-in').style('--d',(i*0.02)+'s')
+      .attr('d',`M${x0},${sy0} C${xm},${sy0} ${xm},${ty0} ${x1},${ty0} L${x1},${ty1} C${xm},${ty1} ${xm},${sy1} ${x0},${sy1} Z`)
+      .attr('fill',mix(l.source._c,c.bg,.45)).attr('fill-opacity',.62).attr('stroke','none')
+      .attr('data-label',l.source.name+' → '+l.target.name).attr('data-value',fmt(l.value));
+    if(ctx.static && l.w>11) gl.append('text').attr('class','cv-staticlabel').attr('x',xm).attr('y',(sy0+sy1+ty0+ty1)/4).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','9.5px').attr('font-weight',600).text(fmt(l.value));
+  });
+  // nodes + labels
+  nodes.forEach(n=>{ const nx=x(n.depth);
+    svg.append('rect').attr('class','cv-mark cv-in').attr('x',nx).attr('y',n.y).attr('width',nodeW).attr('height',n.h).attr('rx',2).attr('fill',n._c)
+      .attr('data-label',n.name).attr('data-value',fmt(n.value));
+    // first column labels go left (into the reserved pad), last column right, middle columns sit above the node
+    const lab=(n.name.length>16?n.name.slice(0,15)+'…':n.name)+'  '+fmt(n.value);
+    let tx, ty, anchor;
+    if(n.depth===0){ tx=nx-6; ty=n.yc; anchor='end'; }
+    else if(n.depth===maxDepth){ tx=nx+nodeW+6; ty=n.yc; anchor='start'; }
+    else { tx=nx+nodeW/2; ty=n.y-6; anchor='middle'; }
+    svg.append('text').attr('x',tx).attr('y',ty).attr('text-anchor',anchor).attr('dominant-baseline','middle')
+      .attr('fill',c.ink).attr('font-size','11.5px').attr('font-weight',600).attr('paint-order','stroke').attr('stroke',c.bg).attr('stroke-width','2.6').attr('stroke-linejoin','round')
+      .text(lab);
+  });
+  if(cyclic) svg.append('text').attr('x',m.l).attr('y',H-6).attr('fill',c.accent).attr('font-size','10.5px').attr('font-style','italic').text('⚠ a cycle was detected in the flow — layout approximated');
+  return {n:nodes.length};
 }
 
 /* ---- CREATIVE & EDITORIAL ---- */
@@ -1900,36 +2460,54 @@ function buildContext(data, type, opts){
     cat: labels.length ? labels[0].name : null,
     num: nums.length ? nums[0].name : null,
     nums: nums,
+    cats: cats, dates: dates,    // full column objects (carry .index + .granularity) for date-aware renderers
     dateColumn: !!dateCol, dateCol: dateCol ? dateCol.name : null, dateGran: dateCol ? dateCol.granularity : null
   };
 }
+// timestamp accessor for a date column object — paired with the preserved '__t<index>' keys
+function dateTS(row, col){ return col ? row['__t'+col.index] : NaN; }
 
 /* ===================================================================
    R15 — new chart types (consulting essentials + extras)
    =================================================================== */
 function niceUnit(x){ if(!(x>0)) return 1; const p=Math.pow(10,Math.floor(Math.log10(x))); const f=x/p; return (f<1.5?1:f<3.5?2:f<7.5?5:10)*p; }
 
+// WATERFALL — floating-step cascade (Label, signed Change). First/last rows that read as totals
+// anchor to the zero baseline; intermediate changes float (+ structure, − accent), linked by thin lines.
 function renderWaterfall(svg,ctx){
   const c=ctx.c, fmt=ctx.fmt, W=ctx.W;
-  let data=flatData(ctx); if(!data.length) return renderRadial(svg,ctx);
-  let cum=0; const steps=data.map(d=>{ const start=cum; cum+=d.value; return {label:d.label,value:d.value,start,end:cum}; });
-  const total=cum; const bars=steps.concat([{label:'Total',value:total,start:0,end:total,isTotal:true}]);
-  const H=480, m={t:30,r:20,b:54,l:60}; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  let raw=flatData(ctx); if(!raw.length) return renderRadial(svg,ctx);
+  const isTotalLabel=s=>/\b(total|opening|closing|start(?:ing)?|end(?:ing)?|begin|net|balance|final|open|close|subtotal)\b/i.test(String(s||''));
+  // auto-detect explicit start/end total rows (else the end total is computed)
+  const startTotal = raw.length>1 && isTotalLabel(raw[0].label);
+  const endTotal   = raw.length>1 && isTotalLabel(raw[raw.length-1].label);
+  const changes = raw.slice(startTotal?1:0, endTotal?raw.length-1:raw.length);
+  const bars=[]; let cum=0;
+  if(startTotal){ cum=raw[0].value; bars.push({label:raw[0].label, value:cum, start:0, end:cum, isTotal:true}); }
+  changes.forEach(d=>{ const s=cum; cum+=d.value; bars.push({label:d.label, value:d.value, start:s, end:cum}); });
+  let stated=null;
+  if(endTotal){ stated=raw[raw.length-1].value; bars.push({label:raw[raw.length-1].label, value:cum, start:0, end:cum, isTotal:true}); }
+  else { bars.push({label:'Total', value:cum, start:0, end:cum, isTotal:true}); }
+  const mismatch = stated!=null && Math.abs(stated-cum) > Math.max(0.5, Math.abs(cum)*0.005);
+  const H=480, m={t:34,r:20,b:54,l:60}; svg.attr('viewBox',`0 0 ${W} ${H}`);
   const lo=Math.min(0,d3.min(bars,b=>Math.min(b.start,b.end))), hi=Math.max(0,d3.max(bars,b=>Math.max(b.start,b.end)));
   const y=d3.scaleLinear().domain([lo,hi]).nice().range([H-m.b,m.t]);
   const x=d3.scaleBand().domain(bars.map((b,i)=>i)).range([m.l,W-m.r]).padding(0.3);
   const g=svg.append('g');
   y.ticks(5).forEach(t=>{ g.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t)).attr('stroke',mix(c.ink,c.bg,t===0?.5:.92)).attr('stroke-width',t===0?1.3:1);
     g.append('text').attr('class','cv-axis').attr('x',m.l-8).attr('y',y(t)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.inkSoft).text(fmt(t)); });
-  // running total line across bar ends
-  g.append('path').attr('d',d3.line()(steps.map((s,i)=>[x(i)+x.bandwidth()/2,y(s.end)]))).attr('fill','none').attr('stroke',c.accent).attr('stroke-width',1).attr('opacity',.45);
+  if(mismatch) g.append('text').attr('x',W-m.r).attr('y',m.t-18).attr('text-anchor','end').attr('fill',c.accent).attr('font-size','11px').attr('font-style','italic').text('⚠ stated total '+fmt(stated)+' ≠ sum '+fmt(cum));
   bars.forEach((b,i)=>{
     const xx=x(i), bw=x.bandwidth(), yT=y(Math.max(b.start,b.end)), yB=y(Math.min(b.start,b.end)), pos=b.value>=0;
-    const fill=b.isTotal? mix(c.ink,c.bg,.25) : (pos? c.ink : c.accent);
-    g.append('rect').attr('class','cv-mark').attr('x',xx).attr('y',yT).attr('width',bw).attr('height',Math.max(1,yB-yT)).attr('rx',2).attr('fill',fill).attr('data-label',b.label).attr('data-value',fmt(b.value));
-    if(i<bars.length-2) g.append('line').attr('x1',xx+bw).attr('x2',x(i+1)).attr('y1',y(b.end)).attr('y2',y(b.end)).attr('stroke',mix(c.ink,c.bg,.55)).attr('stroke-width',1).attr('stroke-dasharray','3 3');
-    g.append('text').attr('x',xx+bw/2).attr('y',(pos||b.isTotal?yT-5:yB+13)).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','10.5px').attr('class','cv-val').text((b.value>0&&!b.isTotal?'+':'')+fmt(b.value));
-    g.append('text').attr('x',xx+bw/2).attr('y',H-m.b+16).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','10.5px').text(b.label.length>10?b.label.slice(0,9)+'…':b.label);
+    const fill=b.isTotal? mix(c.ink,c.bg,.28) : (pos? c.ink : c.accent);
+    g.append('rect').attr('class','cv-mark cv-in').style('--d',(i*0.06)+'s').attr('x',xx).attr('y',yT).attr('width',bw).attr('height',Math.max(1,yB-yT)).attr('rx',2).attr('fill',fill)
+      .attr('data-label',b.label).attr('data-value',(b.isTotal?fmt(b.value):(b.value>0?'+':'')+fmt(b.value)));
+    // thin link line from this bar's running total to the next bar
+    if(i<bars.length-1) g.append('line').attr('x1',xx+bw).attr('x2',x(i+1)).attr('y1',y(b.end)).attr('y2',y(b.end)).attr('stroke',mix(c.ink,c.bg,.5)).attr('stroke-width',1).attr('stroke-dasharray','3 3');
+    // signed value on steps, running total on total bars (halo so it reads over gridlines)
+    g.append('text').attr('x',xx+bw/2).attr('y',(pos||b.isTotal?yT-6:yB+13)).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','10.5px').attr('font-weight',b.isTotal?700:500).attr('class','cv-val')
+      .attr('paint-order','stroke').attr('stroke',c.bg).attr('stroke-width','2.2').attr('stroke-linejoin','round').text(b.isTotal?fmt(b.value):(b.value>0?'+':'')+fmt(b.value));
+    g.append('text').attr('x',xx+bw/2).attr('y',H-m.b+16).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','10.5px').text(String(b.label).length>10?String(b.label).slice(0,9)+'…':b.label);
   });
   return {n:bars.length};
 }
@@ -1948,25 +2526,48 @@ function renderFunnel(svg,ctx){
   return {n:data.length};
 }
 
+// GANTT — one bar per activity across a real time axis (Activity, Start date, End date[, Group]).
+// Uses the parse layer's preserved timestamps; an optional second category colours bars by group.
 function renderGantt(svg,ctx){
-  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; const {rows,cat,nums}=ctx; let tasks;
-  if(nums.length>=2){
-    const s=nums[0].name,e=nums[1].name;
-    tasks=rows.map((r,i)=>({label:_lab(r,cat,i),start:+r[s],end:+r[e]})).filter(t=>!isNaN(t.start)&&!isNaN(t.end))
-      .map(t=>({label:t.label,start:t.start,end:t.end>=t.start?t.end:t.start+t.end}));
+  const c=ctx.c,fmt=ctx.fmt,W=ctx.W; const {rows,cats,dates,nums}=ctx;
+  const actCol = cats&&cats.length ? cats[0] : null;          // activity label
+  const grpCol = cats&&cats.length>1 ? cats[1] : null;        // optional group
+  let tasks, useDate=false, gran='day';
+  if(dates && dates.length>=2){
+    useDate=true; gran=dates[0].granularity||dates[1].granularity||'day';
+    tasks=rows.map((r,i)=>({ label:actCol?String(r[actCol.name]):('#'+(i+1)), group:grpCol?String(r[grpCol.name]):null,
+      start:dateTS(r,dates[0]), end:dateTS(r,dates[1]) })).filter(t=>!isNaN(t.start)&&!isNaN(t.end));
+  } else if(nums.length>=2){
+    tasks=rows.map((r,i)=>({ label:actCol?String(r[actCol.name]):_lab(r,ctx.cat,i), group:grpCol?String(r[grpCol.name]):null,
+      start:+r[nums[0].name], end:+r[nums[1].name] })).filter(t=>!isNaN(t.start)&&!isNaN(t.end));
   } else {
-    let cum=0; tasks=flatData(ctx).map(d=>{ const start=cum; cum+=Math.abs(d.value); return {label:d.label,start,end:cum}; });
+    let cum=0; tasks=flatData(ctx).map(d=>{ const s=cum; cum+=Math.abs(d.value); return {label:d.label,group:null,start:s,end:cum}; });
   }
   if(!tasks.length) return renderDotstrip(svg,ctx);
-  const maxLab=d3.max(tasks,t=>t.label.length)||6, m={t:24,r:40,b:30,l:Math.min(200,maxLab*7+16)};
-  const rowH=Math.max(22,Math.min(42,460/tasks.length)), H=m.t+m.b+tasks.length*rowH; svg.attr('viewBox',`0 0 ${W} ${H}`);
-  const x=d3.scaleLinear().domain([d3.min(tasks,t=>t.start),d3.max(tasks,t=>t.end)]).nice().range([m.l,W-m.r]); const g=svg.append('g'), col=palOf(c);
-  x.ticks(6).forEach(t=>{ g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',m.t-4).attr('y2',H-m.b).attr('stroke',mix(c.ink,c.bg,.92)).attr('stroke-width',1);
-    g.append('text').attr('class','cv-axis').attr('x',x(t)).attr('y',H-m.b+14).attr('text-anchor','middle').attr('fill',c.inkSoft).text(fmt(t)); });
+  let reversed=false;
+  tasks.forEach(t=>{ if(t.end<t.start){ const tmp=t.start;t.start=t.end;t.end=tmp;t.rev=true;reversed=true; } });   // End<Start → correct + flag
+  tasks.sort((a,b)=>a.start-b.start || a.end-b.end);
+  const groupNames=grpCol?[...new Set(tasks.map(t=>t.group))]:[];
+  const col=palOf(c), colorFor=t=> grpCol? col(groupNames.indexOf(t.group)) : c.accent;
+  const legendH=grpCol?22:0, noteH=reversed?14:0, maxLab=d3.max(tasks,t=>t.label.length)||6;
+  const m={t:28+legendH+noteH, r:46, b:30, l:Math.min(210,maxLab*7+18)};
+  const rowH=Math.max(22,Math.min(40,460/tasks.length)), H=m.t+m.b+tasks.length*rowH; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const minT=d3.min(tasks,t=>t.start), maxT=d3.max(tasks,t=>t.end);
+  const x = useDate ? d3.scaleTime().domain([minT,maxT]).nice().range([m.l,W-m.r])
+                    : d3.scaleLinear().domain([minT,maxT]).nice().range([m.l,W-m.r]);
+  const g=svg.append('g');
+  const tickGran = gran==='day' ? 'month' : gran;
+  const tickFmt = useDate ? (t=>fmtDateLabel(+t,tickGran)) : fmt;
+  x.ticks(6).forEach(t=>{ g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',m.t-6).attr('y2',H-m.b).attr('stroke',mix(c.ink,c.bg,.92)).attr('stroke-width',1);
+    g.append('text').attr('class','cv-axis').attr('x',x(t)).attr('y',H-m.b+14).attr('text-anchor','middle').attr('fill',c.inkSoft).text(tickFmt(t)); });
+  if(reversed) g.append('text').attr('x',m.l).attr('y',12).attr('fill',c.accent).attr('font-size','11px').attr('font-style','italic').text('⚠ activities with end before start shown corrected');
+  if(grpCol){ let lx=m.l; groupNames.forEach((gn,gi)=>{ g.append('rect').attr('x',lx).attr('y',noteH+8).attr('width',11).attr('height',11).attr('rx',2).attr('fill',col(gi));
+    g.append('text').attr('x',lx+16).attr('y',noteH+17).attr('fill',c.inkSoft).attr('font-size','11px').text(gn); lx+=String(gn).length*6.6+34; }); }
   tasks.forEach((t,i)=>{ const yy=m.t+i*rowH, h=rowH-8, w=Math.max(2,x(t.end)-x(t.start));
-    g.append('rect').attr('class','cv-mark').attr('x',x(t.start)).attr('y',yy).attr('width',w).attr('height',h).attr('rx',4).attr('fill',col(i)).attr('data-label',t.label).attr('data-value',fmt(t.start)+' → '+fmt(t.end));
-    g.append('text').attr('x',m.l-10).attr('y',yy+h/2).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(t.label.length>24?t.label.slice(0,23)+'…':t.label);
-    g.append('text').attr('x',x(t.end)+5).attr('y',yy+h/2).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','10px').text(fmt(t.end));
+    g.append('rect').attr('class','cv-mark cv-in').style('--d',(i*0.05)+'s').attr('x',x(t.start)).attr('y',yy).attr('width',w).attr('height',h).attr('rx',4).attr('fill',colorFor(t))
+      .attr('data-label',t.label+(t.group?' · '+t.group:'')).attr('data-value', useDate? fmtDateLabel(t.start,gran)+' → '+fmtDateLabel(t.end,gran) : fmt(t.start)+' → '+fmt(t.end));
+    g.append('text').attr('x',m.l-10).attr('y',yy+h/2).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(t.label.length>26?t.label.slice(0,25)+'…':t.label);
+    g.append('text').attr('x',x(t.end)+5).attr('y',yy+h/2).attr('dominant-baseline','middle').attr('fill',c.inkSoft).attr('font-size','9.5px').text(useDate?fmtDateLabel(t.end,gran):fmt(t.end));
   });
   return {n:tasks.length};
 }
@@ -2279,18 +2880,25 @@ const RENDERERS = {
   proptimeline:renderPropTimeline, rankeddotgrid:renderRankedDotGrid,
   radial:renderRadial, slope:renderSlope, waffle:renderWaffle, beeswarm:renderBeeswarm, connected:renderConnected, dotstrip:renderDotstrip, ridge:renderRidge,
   lollipop:renderLollipop, dumbbell:renderDumbbell, diverging:renderDiverging, bullet:renderBullet,
+  range:renderRange, candlestick:renderCandlestick, barcode:renderBarcode,
   violin:renderViolin, treemap:renderTreemap, sunburst:renderSunburst, marimekko:renderMarimekko,
   isotype:renderIsotype, pack:renderPack, propcircles:renderPropCircles, bump:renderBump,
   stream:renderStream, horizon:renderHorizon, calendar:renderCalendar, race:renderRace,
   parallel:renderParallel, constellation:renderConstellation, contour:renderContour,
   flowfield:renderFlowField, halo:renderHalo, smallmult:renderSmallMultiples,
-  radialheat:renderRadialHeat, spiral:renderSpiral, voronoi:renderVoronoi, isobar:renderIsoBar
+  radialheat:renderRadialHeat, spiral:renderSpiral, voronoi:renderVoronoi, isobar:renderIsoBar,
+  sankey:renderSankey,
+  line:renderLine, bar:renderBar
 };
 // dropdown values that reuse another renderer
-const TYPE_ALIAS = { dotplot:'dotstrip', strip:'beeswarm', dotmatrix:'waffle', unit:'isotype', sankey:'parallel', chord:'halo', network:'constellation', alluvial:'parallel' };
+const TYPE_ALIAS = { dotplot:'dotstrip', strip:'beeswarm', dotmatrix:'waffle', unit:'isotype', chord:'halo', network:'constellation', alluvial:'parallel' };
+// flow/hierarchy types that draw their own format guidance — explicit selection should keep the type, not fall back
+const FORMAT_GUIDED = new Set(['sankey','marimekko','treemap','sunburst','pack']);
 
 function validateFor(type, data){
   const nums = data.columns.filter(c=>c.type==='number');
+  const dates = data.columns.filter(c=>c.type==='date');
+  const cats = data.columns.filter(c=>c.type==='category');
   const labels = data.columns.filter(c=>c.type==='category'||c.type==='date');
   if ((type==='slope'||type==='connected') && nums.length<2)
     return 'Needs two numeric columns — falling back to a better-fitting form.';
@@ -2300,13 +2908,25 @@ function validateFor(type, data){
   if (type==='ridge' && nums.length<1) return 'Needs at least one numeric column.';
   // R15 new types
   if ((type==='bcg'||type==='stacked100') && nums.length<2) return 'Needs two numeric columns.';
-  if ((type==='waterfall'||type==='funnel'||type==='proparea'||type==='pictogram'||type==='flow'||type==='rankeddotgrid'||type==='proptimeline'||type==='heatmatrix'||type==='gantt')
+  if ((type==='waterfall'||type==='funnel'||type==='proparea'||type==='pictogram'||type==='flow'||type==='rankeddotgrid'||type==='proptimeline'||type==='heatmatrix')
       && (nums.length<1 || labels.length<1)) return 'Needs a label column and a value column.';
+  if (type==='gantt' && !((dates.length>=2 || nums.length>=2) && labels.length>=1)) return 'Needs an activity label and start & end columns (dates or numbers).';
   if (type==='bubblematrix' && nums.length<1) return 'Needs at least one numeric column.';
   // Batch 1 flat-data charts
   if ((type==='scatter'||type==='quadrant'||type==='pyramid') && nums.length<2) return 'Needs two numeric columns.';
   if (type==='radar' && (nums.length<1 || labels.length<1)) return 'Needs an attribute column and at least one series.';
   if (type==='pie' && (nums.length<1 || labels.length<1)) return 'Needs a label column and a value column.';
+  // Batch 2 comparison / range / benchmark charts
+  if (type==='range' && (nums.length<2 || labels.length<1)) return 'Needs a label column and Low & High value columns.';
+  if (type==='candlestick' && (nums.length<3 || labels.length<1)) return 'Needs a label and at least 3 value columns (e.g. OHLC, or min/typical/max).';
+  if (type==='barcode' && nums.length<1) return 'Needs at least one numeric column.';
+  // Batch 3 hierarchy / flow charts (gates Auto selection; explicit selection is kept via FORMAT_GUIDED and the renderer's own hint)
+  if ((type==='treemap'||type==='sunburst'||type==='pack') && (nums.length<1 || labels.length<1)) return 'Needs a label column and a value column.';
+  if (type==='marimekko' && !((cats.length>=2 && nums.length>=1) || nums.length>=2)) return 'Needs Column, Segment, Value (or a label with several value columns).';
+  if (type==='sankey' && !(cats.length>=2 && nums.length>=1)) return 'Needs Source, Target, Value columns.';
+  // honest defaults
+  if (type==='line' && nums.length<1) return 'Needs at least one numeric column.';
+  if (type==='bar' && (nums.length<1 || labels.length<1)) return 'Needs a label column and a value column.';
   return null;
 }
 
@@ -2318,6 +2938,8 @@ let STATIC_MODE = false;   // R15 item 2: Animated (default) vs Static (no anims
 // Dense / self-labelling types are skipped; proximity check avoids double-labelling.
 const STATIC_SKIP = new Set(['scatter','quadrant','radar','pie','pyramid',
   'waterfall','funnel','gantt','heatmatrix','stacked100','bcg','proparea','pictogram','flow','bubblematrix','proptimeline','rankeddotgrid',
+  'range','bullet','candlestick','barcode','bump',
+  'treemap','sunburst','marimekko','pack','sankey','line','bar',
   'waffle','beeswarm','dotmatrix','strip','isotype','constellation','contour','flowfield','voronoi','spiral','radialheat','halo','calendar','stream','parallel','race','horizon','smallmult','ridge','violin']);
 function addStaticLabels(svgNode, c, type){
   if (STATIC_SKIP.has(type)) return;
@@ -2353,8 +2975,10 @@ function generate(opt){
     det.innerHTML = '<span class="err">No data detected — paste some numbers or upload a file.</span>';
     return;
   }
-  if (!data.columns.some(c=>c.type==='number')){
-    det.innerHTML = '<span class="err">No numeric column found. Include at least one column of numbers.</span>';
+  // a value axis can be numeric OR a pair of date columns (a schedule → Gantt); only block when neither exists
+  const dateCount = data.columns.filter(c=>c.type==='date').length;
+  if (!data.columns.some(c=>c.type==='number') && dateCount<2){
+    det.innerHTML = '<span class="err">No numeric column found. Include at least one column of numbers (or start &amp; end dates for a timeline).</span>';
     return;
   }
 
@@ -2367,15 +2991,20 @@ function generate(opt){
   //  • a specific type -> five colour/treatment VARIATIONS of that one form
   let recipes;
   if (choice === 'auto'){
-    recipes = pickAutoTypes(data, insight).map(t => ({ type:t, c: currentColors() }));
+    // deterministic rules engine: lead pick + 2 close alternatives + 2 creative wildcards, each with a rationale
+    const picks = selectAuto(data, insight);
+    recipes = picks.map(o => ({ type:o.type, c: currentColors(), why:o.why, lead:o.lead, role:o.role }));
   } else {
+    // manual choice always wins — the selection engine is bypassed entirely
     const want = TYPE_ALIAS[choice] || choice;
     const fits = !validateFor(want, data);
-    const base = fits ? want : chooseChart(data, insight);
+    // flow/hierarchy types keep their identity even on mismatched data — the renderer shows a format hint
+    const base = (fits || FORMAT_GUIDED.has(want)) ? want : chooseChart(data, insight);
     recipes = paletteVariants().map(v => ({ type: base, c: v.c }));
+    while (recipes.length && recipes.length < 5) recipes.push(recipes[recipes.length-1]);
   }
-  while (recipes.length && recipes.length < 5) recipes.push(recipes[recipes.length-1]);
-  CARDS = recipes.slice(0,5);
+  CARDS = recipes.slice(0,5);                 // Auto may legitimately return fewer than 5 (no padding with bad fits)
+  GEN.autoMode = (choice === 'auto');
   curOpt = 0; navBusy = false;
 
   // single full-width output panel
@@ -2387,7 +3016,7 @@ function generate(opt){
   $('#headline').textContent = insight || humanTitle(data, buildContext(data, CARDS[0].type, { c: CARDS[0].c }));
   const numName = (data.columns.find(c=>c.type==='number')||{}).name || '';
   const catName = (data.columns.filter(c=>c.type==='category'||c.type==='date')[0]||{}).name || '';
-  $('#footmeta').textContent = catName ? `${numName} by ${catName}` : numName;
+  $('#footmeta').textContent = numName ? (catName ? `${numName} by ${catName}` : numName) : catName;
   det.innerHTML = '';                       // no meta-copy / no option labels
 
   renderOption(0);                          // paint the first option…
@@ -2427,6 +3056,15 @@ function renderOption(idx){
   LAST = { data, type:r.type, insight, numName, catName, colors:c, refined:!!r.refined };
   applyOutputScaling(r);                       // Feature 3 aspect + type scale (+ Feature 2 refine font)
   const badge=$('#refinedBadge'); if(badge) badge.hidden = !r.refined;   // Feature 2 "Refined" marker
+  // rules-engine rationale + lead marker (Auto only — manual picks bypass the engine and show no note)
+  const note=$('#optNote');
+  if(note){
+    if(r.why){
+      let t=r.why;
+      if(GEN && GEN.autoMode && CARDS.length<5 && r.lead) t += ' · only '+CARDS.length+' strong fit'+(CARDS.length===1?'':'s')+' for this data';
+      $('#optWhy').textContent=t; $('#optBadge').hidden=!r.lead; note.hidden=false;
+    } else { note.hidden=true; }
+  }
   $('#pgPrev').disabled = curOpt <= 0;
   $('#pgNext').disabled = curOpt >= CARDS.length - 1;
 }
@@ -2480,39 +3118,180 @@ function paletteVariants(){
     { c: mkColors(invBg, invInk, b.accent),          note:'Inverted ground' }
   ];
 }
-// five genuinely different forms appropriate to the data shape, primary pick first
-function pickAutoTypes(data, insight){
-  const C = data.columns;
-  const nums   = C.filter(c=>c.type==='number').length;
-  const labels = C.filter(c=>c.type==='category'||c.type==='date').length;
-  const hasDate = C.some(c=>c.type==='date');
-  let pool;
-  if      (hasDate && nums>=2)    pool=['bump','connected','ridge','stream','smallmult','heatmatrix','waterfall','proptimeline'];
-  else if (hasDate && nums>=1)    pool=['ridge','waterfall','proptimeline','bump','stream','radial','funnel','calendar'];
-  else if (nums>=3 && labels>=1)  pool=['parallel','heatmatrix','bcg','radar','quadrant','scatter','smallmult','bump','stacked100','radial','dotstrip','treemap'];
-  else if (nums>=2 && labels>=1)  pool=['scatter','quadrant','bcg','pyramid','stacked100','slope','dumbbell','connected','heatmatrix','dotstrip','radial','lollipop'];
-  else if (nums>=2 && labels===0) pool=['scatter','connected','quadrant','constellation','contour','voronoi','beeswarm','spiral'];
-  else if (nums===1 && labels>=1) pool=['radial','waterfall','funnel','treemap','dotstrip','proparea','pictogram','rankeddotgrid','lollipop','waffle'];
-  else                            pool=['beeswarm','violin','constellation','spiral','radialheat','contour'];
-  const primary = chooseChart(data, insight);
-  const ordered = [primary, ...pool.filter(t=>t!==primary)];
-  const out=[], seen=new Set();
-  for (const t of ordered){
-    if (seen.has(t) || !RENDERERS[t]) continue;
-    if (validateFor(t, data)) continue;
-    seen.add(t); out.push(t);
-    if (out.length>=5) break;
+/* ===================================================================
+   RULES-BASED CHART SELECTION ENGINE (deterministic — no AI)
+   profile → infer intent → score against rules + hard exclusions → pick 5
+   =================================================================== */
+// STEP 1 — profile the data
+function profileData(data){
+  const cols=data.columns, rows=data.rows;
+  const nums=cols.filter(c=>c.type==='number'), dates=cols.filter(c=>c.type==='date'), cats=cols.filter(c=>c.type==='category');
+  const GEO=/\b(country|countries|nation|state|province|region|county|city|cities|postcode|zip|lat|lon|long|geo)\b/i;
+  const labelCol=cats[0]||dates[0];
+  const distinctCats=labelCol ? new Set(rows.map(r=>String(r[labelCol.name]))).size : 0;
+  // part-of-a-whole: one all-positive value column that sums to ~100 / ~1, or whose name reads as a share
+  let partOfWhole=false;
+  if(nums.length>=1){
+    const v0=nums[0], vals=rows.map(r=>+r[v0.name]).filter(x=>!isNaN(x)), sum=d3.sum(vals), allPos=vals.every(x=>x>=0);
+    const pctName=/%|percent|share|proportion/i.test(v0.name);
+    if(allPos && vals.length && (Math.abs(sum-100)<2 || Math.abs(sum-1)<0.02 || pctName)) partOfWhole=true;
   }
-  for (const t of ['dotstrip','beeswarm','radial','treemap','halo','spiral']){
-    if (out.length>=5) break;
-    if (seen.has(t) || !RENDERERS[t] || validateFor(t,data)) continue;
-    seen.add(t); out.push(t);
+  const hasNeg=nums.some(c=>rows.some(r=>(+r[c.name])<0));
+  // hierarchy vs flow: two label columns + a value, disambiguated by column names (else assume hierarchy-capable)
+  const FLOW=/\b(source|target|from|to|origin|dest|destination)\b/i, HIER=/\b(parent|child|sub-?category|level|group)\b/i;
+  let hierarchical=false, flow=false;
+  if(cats.length>=2 && nums.length>=1){
+    const n0=cats[0].name, n1=cats[1].name;
+    if(FLOW.test(n0)||FLOW.test(n1)) flow=true; else hierarchical=true;
+    if(HIER.test(n0)||HIER.test(n1)) hierarchical=true;
   }
+  return {
+    rows:rows.length, cols:cols.length, nums:nums.length, cats:cats.length, dates:dates.length,
+    hasDate:dates.length>0, dateCount:dates.length, dateGran:dates[0]?dates[0].granularity:null,
+    geo:cats.some(c=>GEO.test(c.name)), distinctCats, partOfWhole, hasNeg, hierarchical, flow,
+    twoGroups:nums.length===2 && cats.length>=1, points:rows.length*Math.max(1,nums.length)
+  };
+}
+// STEP 2 — infer purpose(s) from profile + insight keywords; profile wins on conflicts
+function inferIntents(p, insight){
+  const t=(insight||'').toLowerCase(), has=re=>re.test(t), I={}; const add=(k,w)=>{ I[k]=Math.max(I[k]||0,w); };
+  // explicit keyword cues (weight 4 — an explicit ask outranks generic profile defaults)
+  if(has(/\b(share|split|proportion|percent|%|make ?up|makeup|composition|composed|breakdown of|out of|of total)\b/)) add('part-to-whole',4);
+  if(has(/\b(over time|trend|trends|growth|grew|since|rising|fell|decline|declining|year|quarter|month|monthly|annual|yoy|trajectory|seasonal)\b/)) add('change-over-time',4);
+  if(has(/\b(vs|versus|compared|compare|comparison|against)\b/)) add('comparison',4);
+  if(has(/\b(rank|ranking|ranked|top|highest|lowest|leader|leaderboard|league|order|ordered)\b/)) add('ranking',4);
+  if(has(/\b(relationship|correlat|driver|drives|linked to|associat|depends on|predicts?|trade ?off)\b/)) add('correlation',4);
+  if(has(/\b(flow|flows|moves?|journey|funnel|pathway|pipeline|from .* to)\b/)) add('flow',4);
+  if(has(/\b(breakdown|within|nested|hierarchy|hierarchical|parent|sub-)\b/)) add('hierarchy',4);
+  if(has(/\b(spread|distribution|distributed|range of|variation|variance|std ?dev|outliers?|clusters?|histogram|every (data ?)?point)\b/)) add('distribution',4);
+  if(has(/\b(deviation|gap|surplus|deficit|above|below|target|benchmark|net change)\b/)) add('deviation',3);
+  // profile-driven structural signals (weight 5 — the data shape takes priority where it conflicts with keywords)
+  if(p.hasDate) add('change-over-time',5);
+  if(p.flow) add('flow',5);
+  if(p.hierarchical) add('hierarchy',5);
+  if(p.partOfWhole) add('part-to-whole',5);
+  // softer profile hints (weight 2-3 — only steer when no explicit/structural signal dominates)
+  if(p.nums>=2) add('correlation',2);
+  if(p.twoGroups) add('comparison',2);
+  if(p.cats>=1 && p.nums>=1 && !p.hasDate) { add('comparison',3); add('ranking',2); }
+  if(p.cats===0 && p.nums>=1) add('distribution',2);
+  add('comparison',1);                          // baseline so a safe fallback always exists
+  return I;
+}
+// STEP 3 — per-chart rules: families it serves (with fit weight), creative flag, hard exclusion ok(p,I), rationale
+// dominant inferred intent (deterministic — alphabetical tiebreak on equal weight)
+function dominantIntent(I){ let best=null,bw=-1; Object.keys(I).sort().forEach(k=>{ if(I[k]>bw){ bw=I[k]; best=k; } }); return best; }
+const CHART_META = {
+  // honest defaults — modest family weights, but a guaranteed lead in the narrow "simple data" cases below
+  line:      { fams:{'change-over-time':2,comparison:1}, ok:p=>p.nums>=1&&(p.hasDate||p.cats>=1), why:'A clean line tracks values across an ordered axis',
+               leadOK:(p,I)=> p.hasDate && p.nums<=3 && !p.partOfWhole && dominantIntent(I)==='change-over-time' },
+  bar:       { fams:{comparison:2,ranking:1}, ok:p=>p.nums>=1&&p.cats>=1, why:'Clean bars compare a value across a few categories',
+               leadOK:(p,I)=> p.nums===1 && !p.hasDate && !p.partOfWhole && !p.hierarchical && !p.flow && p.distinctCats<=16 && (dominantIntent(I)==='comparison'||dominantIntent(I)==='ranking') },
+  radial:    { fams:{comparison:3,ranking:2,'part-to-whole':1}, ok:p=>p.nums>=1&&p.cats>=1, why:'Compares values across categories in a compact radial form' },
+  dotstrip:  { fams:{comparison:3,ranking:3,distribution:1}, ok:p=>p.nums>=1&&p.cats>=1, why:'Ranks items cleanly along a single value axis' },
+  lollipop:  { fams:{comparison:3,ranking:2}, ok:p=>p.nums>=1&&p.cats>=1, why:'A lighter bar — good for ranking a tidy list' },
+  isobar:    { fams:{comparison:2}, creative:true, ok:p=>p.nums>=1&&p.cats>=1, why:'Isometric bars give a comparison an editorial, 3-D feel' },
+  bullet:    { fams:{comparison:2,deviation:2}, ok:p=>p.nums>=1&&p.cats>=1, why:'Measures each value against a target or qualitative bands' },
+  diverging: { fams:{deviation:3,comparison:2}, ok:p=>p.nums>=1&&p.cats>=1, why:'Shows how each item sits above or below a baseline' },
+  dumbbell:  { fams:{comparison:3,deviation:2,'change-over-time':1}, ok:p=>p.nums>=2&&p.cats>=1, why:'Highlights the gap between two values per item' },
+  range:     { fams:{comparison:2,distribution:2}, ok:p=>p.nums>=2&&p.cats>=1, why:'Emphasises the low-to-high span for each category' },
+  slope:     { fams:{'change-over-time':3,comparison:2}, ok:p=>p.nums>=2&&p.cats>=1, why:'Tracks how each item moved between two points' },
+  ridge:     { fams:{'change-over-time':3,distribution:2}, creative:true, ok:p=>p.nums>=1&&p.rows>=4, why:'Layered ridges read shifting shape over an ordered axis' },
+  stream:    { fams:{'change-over-time':3,'part-to-whole':2}, creative:true, ok:p=>p.nums>=2, why:'Flowing bands show how a composition ebbs over time' },
+  bump:      { fams:{ranking:3,'change-over-time':3}, ok:p=>p.nums>=2, why:'Traces how rankings rise and fall across time points' },
+  connected: { fams:{correlation:3,'change-over-time':2}, ok:p=>p.nums>=2, why:'Connects two metrics through time to reveal their path' },
+  horizon:   { fams:{'change-over-time':2}, creative:true, ok:p=>p.nums>=1&&p.rows>=3, why:'A compact band chart for spotting peaks in a long series' },
+  calendar:  { fams:{'change-over-time':2,distribution:1}, ok:p=>p.nums>=1&&(p.dateGran==='day'||p.rows>=24), why:'Maps values onto a calendar grid to expose daily rhythm' },
+  race:      { fams:{ranking:2,'change-over-time':2}, creative:true, ok:p=>p.nums>=2, why:'An animated bar race dramatises shifting leaders' },
+  proptimeline:{ fams:{'change-over-time':2,'part-to-whole':1}, creative:true, ok:p=>p.nums>=1&&p.cats>=1, why:'Sizes events along a timeline by their magnitude' },
+  gantt:     { fams:{'change-over-time':2}, ok:p=>p.dateCount>=2||(p.nums>=2&&p.cats>=1), why:'Lays activities on a real time axis as a schedule' },
+  candlestick:{ fams:{'change-over-time':2,distribution:2}, ok:p=>p.nums>=3&&p.nums<=5&&p.cats>=1, why:'Shows open/high/low/close (or min–max) ranges per period' },
+  pie:       { fams:{'part-to-whole':3}, ok:p=>p.nums>=1&&p.cats>=1&&p.distinctCats<=6&&!p.hasNeg, why:'Reads a single total split into a few clear slices' },
+  waffle:    { fams:{'part-to-whole':3}, ok:p=>p.nums>=1&&p.cats>=1&&!p.hasNeg, why:'A 100-square grid makes proportions tangible' },
+  stacked100:{ fams:{'part-to-whole':3,comparison:2}, ok:p=>p.nums>=2||(p.cats>=2&&p.nums>=1), why:'Compares composition across groups, each normalised to 100%' },
+  treemap:   { fams:{'part-to-whole':3,hierarchy:3}, ok:p=>p.hierarchical||(p.nums>=1&&p.cats>=1&&!p.hasNeg&&p.distinctCats>6), why:'Nested rectangles size parts (and sub-parts) by value' },
+  sunburst:  { fams:{hierarchy:3,'part-to-whole':2}, creative:true, ok:p=>p.hierarchical||(p.nums>=1&&p.cats>=1&&p.distinctCats>6&&!p.hasNeg), why:'Radial rings show a hierarchy from the inside out' },
+  pack:      { fams:{hierarchy:3,'part-to-whole':2}, creative:true, ok:p=>p.hierarchical||(p.nums>=1&&p.cats>=1&&p.distinctCats>6&&!p.hasNeg), why:'Bubbles within bubbles nest groups and their members' },
+  marimekko: { fams:{'part-to-whole':3,hierarchy:2,comparison:2}, creative:true, ok:p=>(p.cats>=2&&p.nums>=1)||p.nums>=2, why:'Variable-width bars cross two proportions at once' },
+  proparea:  { fams:{'part-to-whole':2,comparison:1}, ok:p=>p.nums>=1&&p.cats>=1, why:'Scales areas to compare magnitudes at a glance' },
+  isotype:   { fams:{'part-to-whole':2,comparison:1}, creative:true, ok:p=>p.nums>=1&&p.cats>=1, why:'Repeated icons turn counts into a pictorial tally' },
+  pictogram: { fams:{'part-to-whole':2,comparison:1}, creative:true, ok:p=>p.nums>=1&&p.cats>=1, why:'Pictorial units make a single quantity relatable' },
+  funnel:    { fams:{flow:2,'part-to-whole':2}, ok:p=>p.nums>=1&&p.cats>=1, why:'Steps narrowing in sequence read as a conversion funnel' },
+  propcircles:{ fams:{comparison:2,'part-to-whole':1}, creative:true, ok:p=>p.nums>=1&&p.cats>=1, why:'Proportional circles compare magnitudes spatially' },
+  beeswarm:  { fams:{distribution:3}, creative:true, ok:p=>p.nums>=1, why:'Every data point is placed to show the full spread' },
+  violin:    { fams:{distribution:3}, ok:p=>p.nums>=1&&p.rows>=6, why:'A density curve reveals where values cluster' },
+  barcode:   { fams:{distribution:3}, ok:p=>p.nums>=1, why:'Thin strokes mark each value to show concentration' },
+  scatter:   { fams:{correlation:3}, ok:p=>p.nums>=2, why:'Plots two metrics to expose their relationship' },
+  quadrant:  { fams:{correlation:3,comparison:2}, ok:p=>p.nums>=2, why:'Splits a scatter into four strategic quadrants' },
+  bcg:       { fams:{correlation:2,comparison:2}, ok:p=>p.nums>=2&&p.cats>=1, why:'A growth–share matrix classifies the portfolio' },
+  bubblematrix:{ fams:{correlation:2,'part-to-whole':1}, creative:true, ok:p=>p.nums>=1&&p.cats>=1, why:'A grid of sized bubbles compares two dimensions' },
+  parallel:  { fams:{correlation:2,flow:2}, ok:p=>p.nums>=3||p.flow, why:'Parallel axes trace each item across many metrics' },
+  contour:   { fams:{correlation:2,distribution:2}, creative:true, ok:p=>p.nums>=2, why:'Density contours map where points concentrate' },
+  voronoi:   { fams:{correlation:1,distribution:1}, creative:true, ok:p=>p.nums>=2, why:'Voronoi cells partition the space around each point' },
+  constellation:{ fams:{correlation:2,distribution:1}, creative:true, ok:p=>p.nums>=1, why:'A star-map scatter gives points an editorial cosmos' },
+  rankeddotgrid:{ fams:{ranking:3,'part-to-whole':1}, creative:true, ok:p=>p.nums>=1&&p.cats>=1, why:'A ranked grid of dots counts out the order' },
+  waterfall: { fams:{deviation:3,'change-over-time':1,flow:1}, ok:(p,I)=>p.nums>=1&&p.cats>=1&&!p.hasDate&&(p.hasNeg||!!I['deviation']||!!I['flow']), why:'Bridges a start to an end through signed steps' },
+  sankey:    { fams:{flow:3,'part-to-whole':1}, ok:p=>p.flow, why:'Ribbons sized by value trace how flows move source→target' },
+  flow:      { fams:{flow:2}, ok:p=>p.nums>=1&&p.cats>=1, why:'A simplified diagram sketches movement between stages' },
+  pyramid:   { fams:{comparison:2,distribution:1}, ok:p=>p.nums>=2&&p.cats>=1, why:'Mirrored bars compare two groups across categories' },
+  heatmatrix:{ fams:{comparison:2,correlation:1,'part-to-whole':1}, ok:p=>p.nums>=2&&p.cats>=1, why:'A colour grid compares many values at once' },
+  smallmult: { fams:{comparison:2,'change-over-time':1}, creative:true, ok:p=>p.nums>=2, why:'Small multiples repeat one form for easy comparison' },
+  radialheat:{ fams:{'change-over-time':1,distribution:1}, creative:true, ok:p=>p.nums>=1&&p.cats>=1, why:'A radial heatmap wraps a cycle into rings' },
+  spiral:    { fams:{'change-over-time':1}, creative:true, ok:p=>p.nums>=1, why:'A spiral coils a long series to reveal periodicity' },
+  flowfield: { fams:{distribution:1,correlation:1}, creative:true, ok:p=>p.nums>=1, why:'A flow field renders values as an abstract current' },
+  halo:      { fams:{'part-to-whole':1,comparison:1}, creative:true, ok:p=>p.nums>=1&&p.cats>=1, why:'Concentric halo rings give magnitudes a poster feel' }
+};
+function chartScore(type, p, I){
+  const m=CHART_META[type]; if(!m || !RENDERERS[type]) return null;
+  if(!m.ok(p, I)) return null;                                   // hard exclusion
+  // dominant-family score (so a chart built for the data's main purpose wins, not a jack-of-all-trades)
+  let best=0, rest=0;
+  for(const fam in m.fams){ const v=(I[fam]||0)*m.fams[fam]; if(v>best){ rest+=best; best=v; } else rest+=v; }
+  const leads = m.leadOK && m.leadOK(p, I);
+  if(best<=0 && !leads) return 0;                               // no intent match and not a forced honest default
+  let s=best + 0.25*rest;                                       // small bonus for serving secondary intents too
+  if(m.creative) s-=0.4;                                        // tie-break: prefer conventional charts for the lead
+  if(leads) s+=100;                                             // honest default wins the lead in genuinely simple cases only
+  return s;
+}
+function primaryFamily(type, I){
+  const m=CHART_META[type]; let best=null, bs=-1;
+  for(const fam in m.fams){ const s=(I[fam]||0)*m.fams[fam]; if(s>bs){ bs=s; best=fam; } }
+  return best || Object.keys(m.fams)[0];
+}
+// STEP 4 — choose exactly five: lead + two same-family alternatives + two creative wildcards
+function selectAuto(data, insight){
+  const p=profileData(data), I=inferIntents(p, insight);
+  const scored=[];
+  for(const type in CHART_META){ const s=chartScore(type,p,I); if(s!=null && s>0) scored.push({type,s,m:CHART_META[type]}); }
+  scored.sort((a,b)=> b.s-a.s || (TYPE_NAMES[a.type]<TYPE_NAMES[b.type]?-1:1));   // deterministic
+  if(!scored.length) return [];
+  const lead=scored[0].type, leadFam=primaryFamily(lead, I), chosen=new Set([lead]);
+  // two close alternatives — same purpose family, conventional first, then creative same-family, then any
+  const alts=[]; const take=(arr,pred,n)=>{ for(const o of scored){ if(arr.length>=n) break; if(chosen.has(o.type)) continue; if(pred(o)){ arr.push(o.type); chosen.add(o.type); } } };
+  take(alts, o=>!o.m.creative && primaryFamily(o.type,I)===leadFam, 2);   // conventional, same PRIMARY purpose
+  take(alts, o=> primaryFamily(o.type,I)===leadFam, 2);                   // any form, same primary purpose
+  take(alts, o=>!o.m.creative && o.m.fams[leadFam], 2);                   // conventional that also serves the purpose
+  take(alts, o=>!o.m.creative, 2);                                        // conventional, any family
+  take(alts, ()=>true, 2);                                                // anything that still scores
+  // two wildcards — the highest-scoring creative/editorial forms that still legitimately fit
+  const wilds=[];
+  take(wilds, o=> o.m.creative, 2);
+  take(wilds, ()=>true, 2);                                 // (only fills from charts that already passed exclusions)
+  const out=[{type:lead, lead:true, role:'lead', why:CHART_META[lead].why}];
+  alts.forEach(t=> out.push({type:t, lead:false, role:'alt', why:'Close alternative — '+lcFirst(CHART_META[t].why)}));
+  wilds.forEach(t=> out.push({type:t, lead:false, role:'wild', why:'Wildcard — '+lcFirst(CHART_META[t].why)}));
   return out.slice(0,5);
 }
+function lcFirst(s){ return s ? s.charAt(0).toLowerCase()+s.slice(1) : s; }
+// thin wrapper kept for callers that only need the type list
+function pickAutoTypes(data, insight){ return selectAuto(data, insight).map(o=>o.type); }
 
 function humanTitle(data, ctx){
-  const numName=(data.columns.find(c=>c.type==='number')||{}).name||'Values';
+  const nums=data.columns.filter(c=>c.type==='number');
+  const dates=data.columns.filter(c=>c.type==='date');
+  if(!nums.length && dates.length>=2) return ctx.cat ? `${ctx.cat} timeline` : 'Timeline';   // date-range (Gantt)
+  const numName=nums.length?nums[0].name:'Values';
   return ctx.cat ? `${numName} by ${ctx.cat}` : numName;
 }
 
@@ -2638,7 +3417,13 @@ const EXAMPLES = [
   { data:`Year, EV sales 000s, Chargepoints 000s\n2019, 38, 17\n2020, 108, 22\n2021, 190, 29\n2022, 267, 37\n2023, 315, 53\n2024, 382, 73`,
     insight:`Charging infrastructure is struggling to keep pace with EV sales.` },
   { data:`Funding stage, Companies still active %\nPre-seed, 100\nSeed, 60\nSeries A, 38\nSeries B, 23\nSeries C, 14\nExit, 8`,
-    insight:`Barely one in twelve pre-seed startups makes it through to an exit.` }
+    insight:`Barely one in twelve pre-seed startups makes it through to an exit.` },
+  { data:`Parent, Child, Value\n, Technology, 0\nTechnology, Cloud, 120\nTechnology, Devices, 80\nTechnology, Software, 95\n, Finance, 0\nFinance, Banking, 200\nFinance, Insurance, 90\n, Healthcare, 0\nHealthcare, Pharma, 110\nHealthcare, Devices, 60`,
+    insight:`Revenue concentrates in finance, but technology spreads across more lines.` },
+  { data:`Column, Segment, Value\nNorth, Product A, 40\nNorth, Product B, 30\nNorth, Product C, 30\nSouth, Product A, 60\nSouth, Product B, 25\nSouth, Product C, 15\nWest, Product A, 20\nWest, Product B, 50\nWest, Product C, 30`,
+    insight:`The South is both the largest region and the most reliant on Product A.` },
+  { data:`Source, Target, Value\nAwareness, Consideration, 1000\nConsideration, Trial, 600\nTrial, Purchase, 300\nPurchase, Repeat, 180\nConsideration, Lapsed, 400`,
+    insight:`The steepest drop-off is between awareness and consideration.` }
 ];
 // Random order, no example repeats until all 15 have been shown.
 let exQueue = [];
@@ -2971,7 +3756,7 @@ function restoreChart(c){
   $('#headline').textContent=(c.insight)||humanTitle(data, buildContext(data, c.type, { c:c.colors||currentColors() }));
   const numName=(data.columns.find(x=>x.type==='number')||{}).name||'';
   const catName=(data.columns.filter(x=>x.type==='category'||x.type==='date')[0]||{}).name||'';
-  $('#footmeta').textContent=catName?numName+' by '+catName:numName;
+  $('#footmeta').textContent=numName?(catName?numName+' by '+catName:numName):catName;
   HIST_ID=c.id;
   renderOption(0); if(!STATIC_MODE) pulseIn($('#chart'));
   $('#navExport').disabled=false;
@@ -3130,7 +3915,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   syncColorUI();
   const hasOutput = () => LAST || !$('#figure').hidden;
   $('#generate').addEventListener('click', ()=> generate());
-  $('#charttype').addEventListener('change', ()=>{ if(hasOutput()) generate(false); });
+  // show the expected input format in the data placeholder when a hierarchy/flow type is chosen
+  const DEFAULT_DATA_PH = $('#data').getAttribute('placeholder');
+  function updateDataPlaceholder(){ const spec=FLOW_FORMATS[$('#charttype').value];
+    $('#data').setAttribute('placeholder', spec ? ('Expected format — '+spec[0]+'\n'+spec[1].join('\n')) : DEFAULT_DATA_PH); }
+  $('#charttype').addEventListener('change', ()=>{ updateDataPlaceholder(); if(hasOutput()) generate(false); });
+  updateDataPlaceholder();
   ['hex-bg','hex-ink','hex-accent'].forEach(id=>{
     $('#'+id).addEventListener('input', ()=>{ syncColorUI(); if(hasOutput()) generate(false); });
   });
