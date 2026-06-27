@@ -275,6 +275,16 @@
   .xtoggle{margin-right:auto;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
     font-size:12.5px;font-weight:600;color:#FFFFFF;user-select:none;text-shadow:0 1px 4px rgba(0,0,0,.45)}
   .xtoggle input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;margin:0}
+  /* R20: Apple-style sliding pill toggle — shared by "Show as title" and "Transparent background" */
+  .pilltoggle{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none;
+    font-size:12.5px;font-weight:600;color:#FFFFFF;text-shadow:0 1px 4px rgba(0,0,0,.45)}
+  .pilltoggle input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+  .pilltoggle .pill{position:relative;flex:0 0 auto;width:40px;height:22px;border-radius:22px;
+    background:rgba(120,120,120,.6);transition:background .2s ease}
+  .pilltoggle .pill::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .2s ease}
+  .pilltoggle input:checked + .pill{background:#EA0027}
+  .pilltoggle input:checked + .pill::after{transform:translateX(18px)}
 
   /* ---- single-chart pager (one option at a time, full width; arrows page) ---- */
   .pager{position:relative}
@@ -563,7 +573,7 @@
       <div class="field">
         <label for="insight">What insight am I trying to land?</label>
         <textarea id="insight" placeholder="e.g. A handful of nations drive the overwhelming majority of catches."></textarea>
-        <label class="xtoggle" id="showTitleToggle" style="margin:9px 0 0" title="Show your insight as the chart's title (off by default)"><input type="checkbox" id="showTitle"> Show as title</label>
+        <label class="pilltoggle" id="showTitleToggle" style="margin:11px 0 0" title="Show your insight as the chart's title (off by default)"><span>Show as title</span><input type="checkbox" id="showTitle"><span class="pill"></span></label>
       </div>
 
       <div class="field">
@@ -719,9 +729,7 @@
       </div>
 
       <div class="export-bar" id="exportBar" hidden>
-        <label class="xtoggle" title="Export the chart with no background fill — chart elements only, on a transparent canvas">
-          <input type="checkbox" id="transparentBg"> Transparent background
-        </label>
+        <label class="pilltoggle" style="margin-right:auto" title="Export the chart with no background fill — chart elements only, on a transparent canvas"><span>Transparent background</span><input type="checkbox" id="transparentBg"><span class="pill"></span></label>
         <button class="xbtn" id="copyBtn"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span id="copyLabel">Copy HTML</span></button>
         <button class="xbtn" id="svgBtn"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Download .svg</button>
         <button class="xbtn primary" id="downloadBtn"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Download .html</button>
@@ -902,21 +910,44 @@ function cellsToData(rows){
   const width = d3.max(rows, r => r.length);
   rows = rows.map(r => { const c=r.slice(); while(c.length<width) c.push(''); return c; });
 
-  // header detection: first row non-numeric, and some later row has a numeric cell in a col
+  // Header detection — compare the first row's cell types against the columns BELOW it.
+  // A plain-string cell sitting over a numeric/date column is a column NAME (header); a first row
+  // that is ALL numbers / ALL dates is data; when uncertain we keep the row as a header (never drop one).
   let header = null, body = rows;
-  const firstAllNonNum = rows[0].every(c => !isNumeric(c));
-  const laterHasNum = rows.slice(1).some(r => r.some(c => isNumeric(c) || isDateLike(c)));   // a value OR a date marks a real body row
-  // year-column header: a text label followed by all year cells (e.g. "Brand, 2021, 2022, 2023"),
+  const r0 = rows[0];
+  const isText = c => { const s=String(c).trim(); return s!=='' && !isNumeric(c) && !isDateLike(c); };
+  // year-column header: a text label followed by all-year cells (e.g. "Brand, 2021, 2022, 2023"),
   // where the body rows don't themselves start with a year — common for bump / time-series tables.
-  const yearHeader = rows.length > 1 && rows[0].length > 1 && !isNumeric(rows[0][0])
-    && rows[0].slice(1).every(isYearVal)
+  const yearHeader = rows.length > 1 && r0.length > 1 && !isNumeric(r0[0])
+    && r0.slice(1).every(isYearVal)
     && rows.slice(1).every(r => !isYearVal(r[0]))
     && rows.slice(1).some(r => r.slice(1).some(c => isNumeric(c) && !isYearVal(c)));
-  if (rows.length > 1 && ((firstAllNonNum && laterHasNum) || yearHeader)){
-    header = rows[0].map(h => String(h).trim());
+  let isHeader = false;
+  if (rows.length > 1){
+    const allNonValue = r0.every(c => String(c).trim()==='' || isText(c));   // the whole first row is plain text
+    const hasText = r0.some(isText);
+    let typeMismatch = false;
+    for (let ci=0; ci<width; ci++){
+      const col = rows.slice(1).map(r=>r[ci]).filter(v=>String(v).trim()!=='');
+      if (!col.length) continue;
+      const colValuey = (col.filter(isNumeric).length/col.length >= 0.6) || (col.filter(isDateLike).length/col.length >= 0.6);
+      if (colValuey && isText(r0[ci])) typeMismatch = true;        // a name sitting over a numeric/date column
+    }
+    isHeader = yearHeader || typeMismatch || (allNonValue && hasText);
+  }
+  if (isHeader){
+    header = r0.map(h => String(h).trim());
     body = rows.slice(1);
   } else {
-    header = rows[0].map((_,i) => i===0 ? 'Category' : (width===2 ? 'Value' : 'Value '+i));
+    // no header — whole grid is data; auto-generate names from each column's data type
+    header = r0.map((_,i) => {
+      const col = rows.map(r=>r[i]).filter(v=>String(v).trim()!=='');
+      const num = col.length && col.filter(isNumeric).length/col.length >= 0.6;
+      const dat = col.length && col.filter(isDateLike).length/col.length >= 0.6;
+      if (dat) return width>2 ? 'Period '+(i+1) : 'Period';
+      if (num) return width>2 ? 'Value '+(i+1) : 'Value';
+      return i===0 ? 'Category' : 'Group '+(i+1);
+    });
   }
 
   const columns = header.map((name,i) => {
@@ -2976,25 +3007,30 @@ const STATIC_SKIP = new Set(['scatter','quadrant','radar','pie','pyramid',
   'treemap','sunburst','marimekko','pack','sankey','line','bar',
   'waffle','beeswarm','dotmatrix','strip','isotype','constellation','contour','flowfield','voronoi','spiral','radialheat','halo','calendar','stream','parallel','race','horizon','smallmult','ridge','violin']);
 function addStaticLabels(svgNode, c, type){
+  // R20 fix: mutual exclusivity — clear any static labels already present so toggling never stacks them.
+  svgNode.querySelectorAll('.cv-staticlabel').forEach(el=>el.remove());
   if (STATIC_SKIP.has(type)) return;
   const NS='http://www.w3.org/2000/svg';
   const marks=[...svgNode.querySelectorAll('.cv-mark[data-value]')];
   if (!marks.length || marks.length>40) return;
-  const texts=[...svgNode.querySelectorAll('text')].map(t=>{ let b; try{b=t.getBBox();}catch(e){return null;} return b?{x:b.x+b.width/2,y:b.y+b.height/2}:null; }).filter(Boolean);
+  const texts=[...svgNode.querySelectorAll('text')].map(t=>{ let b; try{b=t.getBBox();}catch(e){return null;} return b?{x:b.x+b.width/2,y:b.y+b.height/2,txt:(t.textContent||'').trim()}:null; }).filter(Boolean);
   marks.forEach(m=>{
     const v=m.getAttribute('data-value'); if(v==null||v==='') return;
     let bb; try{ bb=m.getBBox(); }catch(e){ return; } if(!bb||(bb.width<1&&bb.height<1)) return;
+    const mcx=bb.x+bb.width/2, mcy=bb.y+bb.height/2;
     const tag=m.tagName.toLowerCase(); let tx,ty,anchor='middle',baseline='middle';
     if(tag==='rect'){ if(bb.width>=bb.height){ tx=bb.x+bb.width+4; ty=bb.y+bb.height/2; anchor='start'; } else { tx=bb.x+bb.width/2; ty=bb.y-4; baseline='auto'; } }
     else { tx=bb.x+bb.width/2; ty=bb.y+bb.height/2; }
-    if(texts.some(p=>Math.abs(p.x-tx)<16 && Math.abs(p.y-ty)<13)) return;   // already labelled nearby
+    if(texts.some(p=>Math.abs(p.x-tx)<16 && Math.abs(p.y-ty)<13)) return;                                  // a label already sits where we'd place ours
+    // R20 fix: if the renderer already drew THIS mark's value beside it, don't add a second copy (the "228" bug)
+    if(texts.some(p=> p.txt===v && Math.abs(p.x-mcx) < bb.width/2+42 && Math.abs(p.y-mcy) < bb.height/2+26)) return;
     const t=document.createElementNS(NS,'text');
     t.setAttribute('x',tx.toFixed(1)); t.setAttribute('y',ty.toFixed(1));
     t.setAttribute('text-anchor',anchor); t.setAttribute('dominant-baseline',baseline);
     t.setAttribute('font-size','10.5px'); t.setAttribute('font-weight','600'); t.setAttribute('fill',c.ink);
     t.setAttribute('paint-order','stroke'); t.setAttribute('stroke',c.bg); t.setAttribute('stroke-width','2.6'); t.setAttribute('stroke-linejoin','round');
     t.setAttribute('class','cv-staticlabel'); t.textContent=v;
-    svgNode.appendChild(t); texts.push({x:tx,y:ty});
+    svgNode.appendChild(t); texts.push({x:tx,y:ty,txt:v});
   });
 }
 
