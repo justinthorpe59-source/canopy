@@ -152,7 +152,7 @@
 
   /* ---------- floating tool layout, layered over the image ---------- */
   .app{
-    position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:6px 30px 90px;
+    position:relative;z-index:1;max-width:1180px;margin:-18px auto 0;padding:6px 30px 90px;
     display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start;
   }
   .panel{
@@ -247,6 +247,13 @@
   }
   .cv-kicker{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin:0 0 12px}
   #chart{margin-top:18px}
+  /* R21 item 4: transparent-background preview — subtle 12px checkerboard behind the chart (preview only, never exported) */
+  #chart.transparent-preview{
+    background-color:#FFFFFF;border-radius:10px;
+    background-image:linear-gradient(45deg,#E8E8E8 25%,transparent 25%,transparent 75%,#E8E8E8 75%),
+                     linear-gradient(45deg,#E8E8E8 25%,transparent 25%,transparent 75%,#E8E8E8 75%);
+    background-size:24px 24px;background-position:0 0,12px 12px;
+  }
   #chart svg{width:100%;height:auto;display:block;overflow:visible}
   .cv-foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--ink-soft);margin:18px 0 0;letter-spacing:.01em}
   .cv-foot .tag{display:inline-flex;align-items:center;gap:5px;opacity:.85}
@@ -275,16 +282,19 @@
   .xtoggle{margin-right:auto;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
     font-size:12.5px;font-weight:600;color:#FFFFFF;user-select:none;text-shadow:0 1px 4px rgba(0,0,0,.45)}
   .xtoggle input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;margin:0}
-  /* R20: Apple-style sliding pill toggle — shared by "Show as title" and "Transparent background" */
-  .pilltoggle{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none;
-    font-size:12.5px;font-weight:600;color:#FFFFFF;text-shadow:0 1px 4px rgba(0,0,0,.45)}
+  /* R21 item 1/2/3: clean Apple-style sliding pill toggle — shared by "Show as title" (in the frosted panel) and "Transparent background" (export bar).
+     Colour is kept low-specificity so the panel's dark label colour governs "Show as title" (readable on the light panel) while the over-image export toggle stays white. */
+  .pilltoggle{color:#FFFFFF}
+  /* layout + type must out-rank .field > label (which forces display:block / UPPERCASE / 11px on panel labels) — equal specificity, later in source */
+  label.pilltoggle{display:inline-flex;align-items:center;gap:11px;cursor:pointer;user-select:none;
+    margin-left:6px;margin-bottom:0;font-size:12.5px;font-weight:600;text-transform:none;letter-spacing:normal}
   .pilltoggle input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
-  .pilltoggle .pill{position:relative;flex:0 0 auto;width:40px;height:22px;border-radius:22px;
-    background:rgba(120,120,120,.6);transition:background .2s ease}
-  .pilltoggle .pill::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
-    background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .2s ease}
+  .pilltoggle .pill{position:relative;flex:0 0 auto;width:52px;height:28px;border-radius:28px;
+    background:#D1D5DB;border:none;transition:background .25s ease}
+  .pilltoggle .pill::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18);transition:transform .25s ease}
   .pilltoggle input:checked + .pill{background:#EA0027}
-  .pilltoggle input:checked + .pill::after{transform:translateX(18px)}
+  .pilltoggle input:checked + .pill::after{transform:translateX(24px)}
 
   /* ---- single-chart pager (one option at a time, full width; arrows page) ---- */
   .pager{position:relative}
@@ -311,8 +321,9 @@
   /*FIGURE_CSS_START*/
   @keyframes cvIn{to{opacity:1}}
   @keyframes cvDraw{to{stroke-dashoffset:0}}
-  .cv-in{opacity:0;animation:cvIn .6s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:var(--d,0s)}
-  .cv-draw{animation:cvDraw 1.05s cubic-bezier(.45,.5,.2,1) forwards;animation-delay:var(--d,0s)}
+  /* R21 item 6: entrance durations + per-element staggers slowed ~2.5× (easing unchanged); calc() scales every renderer's --d in one place */
+  .cv-in{opacity:0;animation:cvIn 1.5s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:calc(var(--d,0s) * 2.5)}
+  .cv-draw{animation:cvDraw 2.625s cubic-bezier(.45,.5,.2,1) forwards;animation-delay:calc(var(--d,0s) * 2.5)}
   .cv-mark{transition:opacity .2s ease, filter .2s ease;cursor:default}
   .cv-figure:hover .cv-mark:not(:hover){opacity:.42}
   .cv-mark:hover{filter:brightness(1.05)}
@@ -573,7 +584,7 @@
       <div class="field">
         <label for="insight">What insight am I trying to land?</label>
         <textarea id="insight" placeholder="e.g. A handful of nations drive the overwhelming majority of catches."></textarea>
-        <label class="pilltoggle" id="showTitleToggle" style="margin:11px 0 0" title="Show your insight as the chart's title (off by default)"><span>Show as title</span><input type="checkbox" id="showTitle"><span class="pill"></span></label>
+        <label class="pilltoggle" id="showTitleToggle" style="margin:11px 0 0 6px" title="Show your insight as the chart's title (off by default)"><span>Show as title</span><input type="checkbox" id="showTitle"><span class="pill"></span></label>
       </div>
 
       <div class="field">
@@ -712,8 +723,8 @@
         <figure class="cv-figure" id="figure" hidden>
           <span class="refined-badge" id="refinedBadge" hidden>Refined</span>
           <div class="mode-toggle" id="modeToggle" role="group" aria-label="Animation mode">
-            <button type="button" class="mt-btn active" data-mode="animated">Animated</button>
-            <button type="button" class="mt-btn" data-mode="static">Static</button>
+            <button type="button" class="mt-btn" data-mode="animated">Animated</button>
+            <button type="button" class="mt-btn active" data-mode="static">Static</button>
           </div>
           <figcaption class="cv-head" id="headline"></figcaption>
           <div class="opt-note" id="optNote" hidden><span class="opt-badge" id="optBadge" hidden>★ Lead pick</span><span id="optWhy"></span></div>
@@ -2996,7 +3007,7 @@ function validateFor(type, data){
 
 // state for the 5-option pager (one full-width chart at a time, arrow-navigated)
 let CARDS = [], GEN = null, curOpt = 0, navBusy = false;
-let STATIC_MODE = false;   // R15 item 2: Animated (default) vs Static (no anims, value labels on)
+let STATIC_MODE = true;    // R21 item 5: Static is the default (value labels on, no anims); Animated is toggle-on
 let SHOW_TITLE = false;    // R19: insight is NOT the chart title by default — the "Show as title" toggle opts in (per session)
 
 // Static mode: print value labels directly on standard bar/dot charts (no hover needed).
@@ -3054,6 +3065,11 @@ function generate(opt){
   }
 
   stopAnims();
+  // R21 item 5: every explicit Generate starts in Static (the default view); reactive re-renders keep the current mode
+  if (explicit && !STATIC_MODE){
+    STATIC_MODE = true;
+    document.querySelectorAll('#modeToggle .mt-btn').forEach(x=> x.classList.toggle('active', x.dataset.mode==='static'));
+  }
   GEN = { data, insight };
   const choice = $('#charttype').value;
 
@@ -4044,6 +4060,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if (GEN && CARDS.length){ stopAnims(); renderOption(curOpt); }
     });
   });
+  // R21 item 4: transparent-background preview — checkerboard behind the chart (preview only; never written into any export)
+  (function(){ const tb = $('#transparentBg'); if (tb) tb.addEventListener('change', ()=>{ const ch = $('#chart'); if (ch) ch.classList.toggle('transparent-preview', tb.checked); }); })();
   // chip click → colour-picker popover (native picker + hex field + close button)
   function closeColorPops(){ document.querySelectorAll('.cpop').forEach(p=>p.remove()); }
   function openColorPop(k, hex){
