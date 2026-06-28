@@ -122,23 +122,25 @@
   .hero{position:relative;display:flex;align-items:flex-start}
   .hero-inner{position:relative;z-index:1;width:100%;max-width:1180px;margin:0 auto;padding:18px 30px 40px}
   .hero-row{display:flex;align-items:flex-end;justify-content:space-between;gap:30px;width:100%}
+  /* R23: nudge the title/subtitle/byline group up and slightly right (whole lockup moves together) */
+  .hero-lockup{transform:translate(28px,-50px)}
   .hero-lockup h1{
     font-family:'Amatic SC','Archivo',-apple-system,BlinkMacSystemFont,sans-serif;
     font-weight:700;text-transform:uppercase;
-    color:#FFFFFF;margin:0;font-size:clamp(54px,8.6vw,120px);line-height:.84;letter-spacing:2px;
+    color:#FFFFFF;margin:0;font-size:clamp(47px,7.35vw,103px);line-height:.84;letter-spacing:2px;
     text-shadow:0 2px 22px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.3);
   }
   .hero-lockup .strap{
     font-family:'Amatic SC','Archivo',-apple-system,BlinkMacSystemFont,sans-serif;font-weight:700;font-style:italic;
-    color:#FFFFFF;font-size:clamp(26px,4vw,40px);letter-spacing:2px;margin:4px 0 0;
+    color:#FFFFFF;font-size:clamp(22px,3.42vw,34px);letter-spacing:2px;margin:4px 0 0;
     text-shadow:0 1px 8px rgba(0,0,0,.5);
   }
   .hero-lockup .byline{
     font-family:'Amatic SC','Archivo',-apple-system,BlinkMacSystemFont,sans-serif;font-style:italic;font-weight:700;
-    color:#FFFFFF;font-size:clamp(17.6px,2.6vw,23.2px);letter-spacing:1px;margin:8px 0 0;opacity:.95;
+    color:#FFFFFF;font-size:clamp(15.8px,2.34vw,20.9px);letter-spacing:1px;margin:8px 0 0;opacity:.95;
     text-shadow:0 1px 6px rgba(0,0,0,.5);
   }
-  .hero-aside{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;gap:14px;padding-bottom:18px;transform:translate(-26px,32px)}
+  .hero-aside{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;gap:14px;padding-bottom:18px;transform:translate(-26px,-32px)}/* R23: CTA nudged up to sit with the hero text */
   .cta{
     display:inline-flex;align-items:center;gap:12px;text-decoration:none;cursor:pointer;
     background:rgba(255,255,255,.95);color:#16331f;border:none;border-radius:40px;
@@ -152,7 +154,7 @@
 
   /* ---------- floating tool layout, layered over the image ---------- */
   .app{
-    position:relative;z-index:1;max-width:1180px;margin:-18px auto 0;padding:6px 30px 90px;
+    position:relative;z-index:1;max-width:1180px;margin:-80px auto 0;padding:6px 30px 90px;
     display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start;
   }
   .panel{
@@ -413,17 +415,27 @@
   #chart{aspect-ratio:calc(var(--fmt,1.7778) / 1.4);display:flex;align-items:center;justify-content:center}
   #chart > svg{width:auto;height:auto;max-width:100%;max-height:100%}
 
-  /* R15 item 2: Animated / Static toggle + static-mode overrides */
-  .mode-toggle{display:inline-flex;border:1px solid var(--line,rgba(0,0,0,.14));border-radius:9px;overflow:hidden;margin:0 0 14px}
-  .mode-toggle .mt-btn{background:transparent;border:none;font-family:inherit;font-size:11.5px;font-weight:600;color:var(--ink-soft,#8a8a8a);padding:6px 14px;cursor:pointer;transition:.15s}
-  .mode-toggle .mt-btn:hover{color:var(--ink,#1a1a1a)}
-  .mode-toggle .mt-btn.active{background:var(--accent,#C4614A);color:#fff}
-  /* rules-engine rationale + lead-pick marker (Auto mode only) */
-  .opt-note{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:-4px 0 12px;font-size:12.5px;line-height:1.45;color:var(--ink-soft,#7a7a7a)}
+  /* R15 item 2 / R22: Static-mode overrides */
+  /* R22: output-box top bar — rationale (left) + Static/Animated pill (top-right) */
+  .out-top{display:flex;align-items:flex-start;gap:16px;margin:0 0 12px;min-height:26px}
+  /* Static/Animated pill — same visual language as the other pill toggles; off(left)=Static default, on(right)=Animated */
+  .mode-pill{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin-left:auto;flex:0 0 auto;font-size:11.5px;font-weight:600}
+  .mode-pill input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+  .mode-pill .pill{position:relative;flex:0 0 auto;width:46px;height:25px;border-radius:25px;background:#D1D5DB;transition:background .25s ease}
+  .mode-pill .pill::after{content:'';position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .25s ease}
+  .mode-pill input:checked ~ .pill{background:var(--accent,#EA0027)}
+  .mode-pill input:checked ~ .pill::after{transform:translateX(21px)}
+  .mode-pill .mp-side{color:var(--ink-soft,#9aa3ab);transition:color .2s;white-space:nowrap}
+  .mode-pill .mp-static{color:var(--ink,#1a1a1a)}                    /* default state: Static is active */
+  .mode-pill input:checked ~ .mp-static{color:var(--ink-soft,#9aa3ab)}
+  .mode-pill input:checked ~ .mp-animated{color:var(--ink,#1a1a1a)}
+  /* R22: rationale — badge stacked above an attributed, confident one-liner */
+  .opt-note{display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin:0;font-size:14px;line-height:1.5;color:var(--ink,#1a1a1a);min-width:0}
   .opt-note[hidden]{display:none}
   .opt-note .opt-badge{display:inline-block;background:var(--accent,#C4614A);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px;white-space:nowrap}
   .opt-note .opt-badge[hidden]{display:none}
-  .opt-note #optWhy{font-style:italic}
+  .opt-note #optWhy{font-style:normal;font-weight:500;color:var(--ink,#1a1a1a)}
+  .opt-note #optWhy .opt-attr{font-weight:700;color:var(--accent,#C4614A);margin-right:5px}
   .cv-figure.static .cv-in{opacity:1!important;animation:none!important}
   .cv-figure.static .cv-draw{stroke-dashoffset:0!important;animation:none!important}
   .cv-figure.static .cv-mark{transition:none!important}
@@ -583,7 +595,7 @@
 
       <div class="field">
         <label for="insight">What insight am I trying to land?</label>
-        <textarea id="insight" placeholder="e.g. A handful of nations drive the overwhelming majority of catches."></textarea>
+        <textarea id="insight" placeholder="What's the insight? e.g. The UK leads Europe in offshore wind capacity"></textarea>
         <label class="pilltoggle" id="showTitleToggle" style="margin:11px 0 0 6px" title="Show your insight as the chart's title (off by default)"><span>Show as title</span><input type="checkbox" id="showTitle"><span class="pill"></span></label>
       </div>
 
@@ -722,12 +734,17 @@
         <!-- single full-width output; arrows page through the 5 generated options -->
         <figure class="cv-figure" id="figure" hidden>
           <span class="refined-badge" id="refinedBadge" hidden>Refined</span>
-          <div class="mode-toggle" id="modeToggle" role="group" aria-label="Animation mode">
-            <button type="button" class="mt-btn" data-mode="animated">Animated</button>
-            <button type="button" class="mt-btn active" data-mode="static">Static</button>
+          <!-- R22: output-box top bar — rationale (under the lead badge) on the left, Static/Animated pill top-right -->
+          <div class="out-top">
+            <div class="opt-note" id="optNote" hidden><span class="opt-badge" id="optBadge" hidden>★ Lead pick</span><span id="optWhy"></span></div>
+            <label class="mode-pill" id="modeToggle" title="Static prints every value on the chart · Animated reveals values on hover">
+              <input type="checkbox" id="animToggle" aria-label="Animate the chart (off = Static)">
+              <span class="mp-side mp-static">Static</span>
+              <span class="pill"></span>
+              <span class="mp-side mp-animated">Animated</span>
+            </label>
           </div>
           <figcaption class="cv-head" id="headline"></figcaption>
-          <div class="opt-note" id="optNote" hidden><span class="opt-badge" id="optBadge" hidden>★ Lead pick</span><span id="optWhy"></span></div>
           <div class="pager" id="pager">
             <button class="pg-arrow prev" id="pgPrev" type="button" aria-label="Previous option">&#8249;</button>
             <div id="chart"></div>
@@ -749,7 +766,7 @@
       <!-- Feature 2: refine the currently displayed option -->
       <div class="refine-box" id="refineBox" hidden>
         <div class="refine-row">
-          <input type="text" id="refineInput" placeholder="e.g. highlight the highest value, swap to a dark background, make the labels larger">
+          <input type="text" id="refineInput" placeholder="Refine this chart — e.g. make it darker, highlight the largest value, or try a completely different layout">
           <button class="refine-send" id="refineSend" type="button" aria-label="Refine">
             <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -915,6 +932,66 @@ function splitLineToCells(text){
   return lines.map(l => [l.trim()]);
 }
 
+// ── Typed data contract (refactor) ─────────────────────────────────────────
+// The schema is computed ONCE here at parse time and read (never re-derived) by
+// every downstream stage: profiler → intent engine → selection → renderers.
+// It is the single source of truth for what the data contains. Column NAMES are
+// always preserved — numericColumns is ['Wind','Solar','Hydro'], never a count.
+// R24: a column header that is ENTIRELY a time token (year / quarter / month / FY).
+// parseDate already covers 2024, Q1 2024, Jan 2024, 2024-01, 2024-Q1 (full-string only).
+function isTimePeriodName(name){
+  const s=String(name).trim();
+  return !!parseDate(s) || /^FY\s?\d{2,4}$/i.test(s);
+}
+function computeSchema(columns, rows){
+  const numericColumns     = columns.filter(c=>c.type==='number').map(c=>c.name);
+  const dateColumns        = columns.filter(c=>c.type==='date').map(c=>c.name);
+  const categoricalColumns = columns.filter(c=>c.type==='category').map(c=>c.name);
+  const seriesCount = numericColumns.length;
+  // part-of-a-whole: one all-positive value column summing to ~100 / ~1, or named as a share
+  let partOfWhole=false;
+  if(numericColumns.length>=1){
+    const v0=numericColumns[0], vals=rows.map(r=>+r[v0]).filter(x=>!isNaN(x)), sum=d3.sum(vals), allPos=vals.every(x=>x>=0), mx=vals.length?d3.max(vals):0;
+    // a %/share-named column only counts as part-of-whole if its values PLAUSIBLY sum to one whole — independent
+    // rates (e.g. "AI adoption %" or survival "% still active") sum well past 100 and are NOT parts of a whole.
+    const sharesByName=/%|percent|share|proportion/i.test(v0) && sum<=105 && mx<=100;
+    if(allPos && vals.length && (Math.abs(sum-100)<2 || Math.abs(sum-1)<0.02 || sharesByName)) partOfWhole=true;
+  }
+  const hasNegatives = numericColumns.some(n=>rows.some(r=>(+r[n])<0));
+  // hierarchy vs flow: two label columns + a value, disambiguated by column names (else hierarchy-capable)
+  const FLOW=/\b(source|target|from|to|origin|dest|destination)\b/i, HIER=/\b(parent|child|sub-?category|level|group)\b/i;
+  let isHierarchical=false, isFlow=false;
+  if(categoricalColumns.length>=2 && numericColumns.length>=1){
+    const n0=categoricalColumns[0], n1=categoricalColumns[1];
+    if(FLOW.test(n0)||FLOW.test(n1)) isFlow=true; else isHierarchical=true;
+    if(HIER.test(n0)||HIER.test(n1)) isHierarchical=true;
+  }
+  const primaryCat = categoricalColumns[0] || dateColumns[0] || null;
+  const maxCategories = primaryCat ? new Set(rows.map(r=>String(r[primaryCat]))).size : 0;
+  // R24: wide / pivoted time-series detection — exactly one entity column + 2+ numeric columns whose headers are
+  // ALL time tokens (years/quarters/months/FY), or sequential integers 1..k. Those numeric columns are time POINTS
+  // for one measure, not separate measures to compare. We do NOT physically melt (slope/bump/race already read this
+  // orientation — rows = entities, numeric columns = time); instead the line renderer + engine read the columns as a
+  // time axis. The long-format equivalent is fully reconstructible from (entity column × wideTimePoints × values).
+  let wideFormat=false, wideTimePoints=null, wideEntity=null;
+  if(categoricalColumns.length===1 && numericColumns.length>=2){
+    const names=numericColumns.map(String);
+    const allTime=names.every(isTimePeriodName);
+    const seqInts=names.every((n,i)=> /^\d+$/.test(n) && +n===i+1);          // 1,2,3,…
+    if(allTime || seqInts){
+      // sanity: the columns must read as one comparable measure — column medians within ~1000× (guards a stray % col)
+      const meds=numericColumns.map(col=>{ const v=rows.map(r=>+r[col]).filter(x=>!isNaN(x)).sort((a,b)=>a-b); return v.length?Math.abs(v[v.length>>1]):0; }).filter(x=>x>0);
+      if(!meds.length || d3.max(meds)/d3.min(meds) <= 1000){ wideFormat=true; wideTimePoints=names.slice(); wideEntity=categoricalColumns[0]; }
+    }
+  }
+  return {
+    categoricalColumns, numericColumns, dateColumns,
+    seriesCount, rowCount: rows.length, isMultiSeries: seriesCount>=2,
+    isHierarchical, isFlow, partOfWhole, hasNegatives, maxCategories,
+    wideFormat, wideTimePoints, wideEntity, wideMeasure:null, originalWideColumns: wideTimePoints
+  };
+}
+
 function cellsToData(rows){
   rows = rows.filter(r => r.length && r.some(c => String(c).trim() !== ''));
   if (!rows.length) return null;
@@ -933,6 +1010,12 @@ function cellsToData(rows){
     && r0.slice(1).every(isYearVal)
     && rows.slice(1).every(r => !isYearVal(r[0]))
     && rows.slice(1).some(r => r.slice(1).some(c => isNumeric(c) && !isYearVal(c)));
+  // R24: generalise to quarter/month headers (e.g. "Region, Q1 2024, Q2 2024") so pivoted tables parse correctly —
+  // a non-numeric label followed by all date-like cells, where the body rows don't themselves start with a date.
+  const dateHeader = rows.length > 1 && r0.length > 1 && !isNumeric(r0[0]) && !isDateLike(r0[0])
+    && r0.slice(1).every(c => String(c).trim()!=='' && isDateLike(c))
+    && rows.slice(1).every(r => !isDateLike(r[0]))
+    && rows.slice(1).some(r => r.slice(1).some(c => isNumeric(c)));
   let isHeader = false;
   if (rows.length > 1){
     const allNonValue = r0.every(c => String(c).trim()==='' || isText(c));   // the whole first row is plain text
@@ -944,7 +1027,7 @@ function cellsToData(rows){
       const colValuey = (col.filter(isNumeric).length/col.length >= 0.6) || (col.filter(isDateLike).length/col.length >= 0.6);
       if (colValuey && isText(r0[ci])) typeMismatch = true;        // a name sitting over a numeric/date column
     }
-    isHeader = yearHeader || typeMismatch || (allNonValue && hasText);
+    isHeader = yearHeader || dateHeader || typeMismatch || (allNonValue && hasText);
   }
   if (isHeader){
     header = r0.map(h => String(h).trim());
@@ -1004,7 +1087,10 @@ function cellsToData(rows){
   // re-parsing from the label is lossy. The key isn't a column name, so nothing else reads
   // it and parsed rows are never serialised (history stores the raw textarea text).
 
-  return { columns, rows: data.slice(0, 250) };
+  data = data.slice(0, 250);
+  // Attach the typed contract: raw headers + the schema computed once, here, at parse time.
+  const headers = columns.map(c => c.name);
+  return { columns, rows: data, headers, schema: computeSchema(columns, data) };
 }
 
 function parseInput(text){
@@ -1237,10 +1323,56 @@ function renderSlope(svg, ctx){
 
 // LINE — clean line(s) on a date/ordered x-axis (honest default for simple change-over-time).
 // Multi-series labelled at the line ends; breaks cleanly on missing cells; uses the date layer.
+// R24: pivoted/wide time series — the numeric column headers ARE the time points and each ROW is an entity.
+// Draw one line per entity across those columns (the correct orientation), not one line per column across rows.
+function renderLineWide(svg,ctx){
+  const c=ctx.c, fmt=ctx.fmt, W=ctx.W, H=480;
+  const {rows, nums, cat} = ctx;
+  const tps=nums.map((col,i)=>{ const p=parseDate(String(col.name)); return {name:col.name, t:p?p.t:i, gran:p?p.gran:null, isDate:!!p, ord:i}; });
+  const useTime=tps.every(tp=>tp.isDate);
+  const m={t:30,r:122,b:42,l:56}; svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const x = useTime ? d3.scaleTime().domain(d3.extent(tps,d=>d.t)).range([m.l,W-m.r])
+                    : d3.scalePoint().domain(tps.map(d=>d.ord)).range([m.l,W-m.r]);
+  const xpos=tp=> useTime ? x(tp.t) : x(tp.ord);
+  let ents=rows.map((r,i)=>({label:cat!=null?String(r[cat]):('#'+(i+1)), vals:tps.map(tp=>+r[tp.name])})).filter(e=>e.vals.some(v=>!isNaN(v)));
+  const capped=ents.length>6; if(capped) ents=ents.slice(0,6);
+  const allVals=ents.flatMap(e=>e.vals).filter(v=>!isNaN(v));
+  const y=d3.scaleLinear().domain(d3.extent(allVals)).nice().range([H-m.b,m.t]);
+  const g=svg.append('g'), col=palOf(c);
+  y.ticks(5).forEach(t=>{ g.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t)).attr('stroke',mix(c.ink,c.bg,.92));
+    g.append('text').attr('class','cv-axis').attr('x',m.l-8).attr('y',y(t)).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.inkSoft).text(fmt(t)); });
+  tps.forEach(tp=> g.append('text').attr('class','cv-axis').attr('x',xpos(tp)).attr('y',H-m.b+18).attr('text-anchor','middle').attr('fill',c.inkSoft)
+    .text(tp.isDate?fmtDateLabel(tp.t,tp.gran):String(tp.name)));
+  // accent the entity with the highest final value; everyone else takes a structure shade
+  let topIdx=0,topV=-Infinity; ents.forEach((e,i)=>{ const lv=[...e.vals].reverse().find(v=>!isNaN(v)); if(lv!=null&&lv>topV){topV=lv;topIdx=i;} });
+  const ends=[];
+  ents.forEach((e,ei)=>{
+    const cc = ei===topIdx ? c.accent : col(ei+1);
+    const pts=tps.map((tp,j)=>({x:xpos(tp), v:e.vals[j]}));
+    const segs=[]; let cur=[]; pts.forEach(pt=>{ if(isNaN(pt.v)){ if(cur.length){segs.push(cur);cur=[];} } else cur.push(pt); }); if(cur.length) segs.push(cur);
+    const line=d3.line().x(d=>d.x).y(d=>y(d.v));
+    segs.forEach(seg=>{ if(seg.length<2){ if(seg.length===1) g.append('circle').attr('cx',seg[0].x).attr('cy',y(seg[0].v)).attr('r',3).attr('fill',cc); return; }
+      const path=g.append('path').attr('class','cv-draw').attr('d',line(seg)).attr('fill','none').attr('stroke',cc).attr('stroke-width',ei===topIdx?2.8:2).attr('stroke-linecap','round').attr('stroke-linejoin','round');
+      const L=path.node().getTotalLength(); path.style('--len',L).style('--d',(ei*0.08)+'s').attr('stroke-dasharray',L).attr('stroke-dashoffset',L); });
+    pts.forEach((pt,j)=>{ if(isNaN(pt.v)) return; g.append('circle').attr('class','cv-mark cv-in').style('--d',(0.35+ei*0.06)+'s').attr('cx',pt.x).attr('cy',y(pt.v)).attr('r',3).attr('fill',c.bg).attr('stroke',cc).attr('stroke-width',1.8)
+      .attr('data-label',e.label+' · '+tps[j].name).attr('data-value',fmt(pt.v));
+      if(ctx.static) g.append('text').attr('class','cv-staticlabel').attr('x',pt.x).attr('y',y(pt.v)-7).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','9.5px').attr('font-weight',600).text(fmt(pt.v)); });
+    const last=[...pts].reverse().find(pt=>!isNaN(pt.v));
+    if(last) ends.push({y:y(last.v), name:e.label, cc, end:last.v});
+  });
+  ends.sort((a,b)=>a.y-b.y); for(let k=1;k<ends.length;k++){ if(ends[k].y-ends[k-1].y<14) ends[k].y=ends[k-1].y+14; }
+  ends.forEach(e=>{ const t=g.append('text').attr('class','cv-in').style('--d','.6s').attr('x',W-m.r+8).attr('y',e.y).attr('dominant-baseline','middle').attr('fill',e.cc).attr('font-size','11.5px').attr('font-weight',600);
+    t.append('tspan').text(e.name.length>13?e.name.slice(0,12)+'…':e.name);
+    t.append('tspan').attr('x',W-m.r+8).attr('dy','13').attr('font-size','10.5px').attr('font-weight',400).attr('fill',mix(e.cc,c.bg,.2)).text(fmt(e.end)); });
+  if(capped) g.append('text').attr('x',m.l).attr('y',16).attr('fill',c.accent).attr('font-size','10.5px').attr('font-style','italic').text('⚠ showing the first 6 of '+rows.length+' '+(cat||'entities'));
+  return {n:ents.length};
+}
 function renderLine(svg,ctx){
   const c=ctx.c, fmt=ctx.fmt, W=ctx.W, H=480;
   const {rows, nums, cat, dates} = ctx;
   if(!nums || nums.length<1) return renderDotstrip(svg,ctx);
+  // R24: pivoted/wide time series → one line per entity across the time-point columns
+  if(ctx.schema && ctx.schema.wideFormat && cat!=null && nums.length>=2) return renderLineWide(svg,ctx);
   const series=nums.slice(0,5), capped=nums.length>5;
   const dateCol=dates&&dates.length?dates[0]:null, gran=dateCol?dateCol.granularity:null;
   // x positions: real time scale for dates, ordered points otherwise
@@ -2536,7 +2668,9 @@ function buildContext(data, type, opts){
     num: nums.length ? nums[0].name : null,
     nums: nums,
     cats: cats, dates: dates,    // full column objects (carry .index + .granularity) for date-aware renderers
-    dateColumn: !!dateCol, dateCol: dateCol ? dateCol.name : null, dateGran: dateCol ? dateCol.granularity : null
+    dateColumn: !!dateCol, dateCol: dateCol ? dateCol.name : null, dateGran: dateCol ? dateCol.granularity : null,
+    schema: data.schema || computeSchema(data.columns, data.rows),   // typed contract flows through to every renderer
+    headers: data.headers || data.columns.map(c=>c.name)
   };
 }
 // timestamp accessor for a date column object — paired with the preserved '__t<index>' keys
@@ -3012,15 +3146,20 @@ let SHOW_TITLE = false;    // R19: insight is NOT the chart title by default —
 
 // Static mode: print value labels directly on standard bar/dot charts (no hover needed).
 // Dense / self-labelling types are skipped; proximity check avoids double-labelling.
-const STATIC_SKIP = new Set(['scatter','quadrant','radar','pie','pyramid',
-  'waterfall','funnel','gantt','heatmatrix','stacked100','bcg','proparea','pictogram','flow','bubblematrix','proptimeline','rankeddotgrid',
-  'range','bullet','candlestick','barcode','bump',
-  'treemap','sunburst','marimekko','pack','sankey','line','bar',
-  'waffle','beeswarm','dotmatrix','strip','isotype','constellation','contour','flowfield','voronoi','spiral','radialheat','halo','calendar','stream','parallel','race','horizon','smallmult','ridge','violin']);
+// R22: charts that draw their OWN static value labels — the generic labeler must not touch them.
+// (scatter/quadrant/bcg/bubblematrix/halo/radialheat/smallmult/parallel/candlestick were REMOVED from this set so
+//  the generic labeler now prints their values; the dense distributions / editorial forms below stay skipped because
+//  labelling every overlapping point would be illegible — their values remain on hover.)
+const STATIC_SKIP = new Set([
+  'radar','pie','pyramid','waterfall','funnel','gantt','heatmatrix','stacked100','proparea','pictogram','flow','proptimeline','rankeddotgrid',
+  'range','bullet','barcode','bump','treemap','sunburst','marimekko','pack','sankey','line','bar','waffle','isotype','calendar','race','horizon',
+  'beeswarm','dotmatrix','strip','constellation','contour','flowfield','voronoi','spiral','stream','ridge','violin']);
 function addStaticLabels(svgNode, c, type){
-  // R20 fix: mutual exclusivity — clear any static labels already present so toggling never stacks them.
-  svgNode.querySelectorAll('.cv-staticlabel').forEach(el=>el.remove());
+  // R22 fix: skipped charts draw their OWN static values (several with class cv-staticlabel, e.g. line/marimekko).
+  // Bail BEFORE clearing, or we'd delete the renderer's own labels and leave the chart value-less.
   if (STATIC_SKIP.has(type)) return;
+  // clear any generic labels already present so a re-render never stacks them
+  svgNode.querySelectorAll('.cv-staticlabel').forEach(el=>el.remove());
   const NS='http://www.w3.org/2000/svg';
   const marks=[...svgNode.querySelectorAll('.cv-mark[data-value]')];
   if (!marks.length || marks.length>40) return;
@@ -3053,14 +3192,18 @@ function generate(opt){
   if(insight) loadNLP();                        // ensure the NLP layer loads for example/pasted insights too
   const det = $('#detected');
   const data = parseInput(raw);
+  // On a parse failure, fail loudly AND clear any stale chart — never leave a previous (now-wrong) figure on screen.
+  const failParse = msg => { det.innerHTML = '<span class="err">'+msg+'</span>';
+    $('#figure').hidden = true; $('#exportBar').hidden = true; const rb=$('#refineBox'); if(rb) rb.hidden=true;
+    $('#placeholder').hidden = false; };
   if (!data || !data.rows.length){
-    det.innerHTML = '<span class="err">No data detected — paste some numbers or upload a file.</span>';
+    failParse('Canopy couldn’t read this data. Try CSV format, e.g. Category, Value.');
     return;
   }
   // a value axis can be numeric OR a pair of date columns (a schedule → Gantt); only block when neither exists
   const dateCount = data.columns.filter(c=>c.type==='date').length;
   if (!data.columns.some(c=>c.type==='number') && dateCount<2){
-    det.innerHTML = '<span class="err">No numeric column found. Include at least one column of numbers (or start &amp; end dates for a timeline).</span>';
+    failParse('No numeric column found. Include at least one column of numbers (or start &amp; end dates for a timeline).');
     return;
   }
 
@@ -3068,7 +3211,7 @@ function generate(opt){
   // R21 item 5: every explicit Generate starts in Static (the default view); reactive re-renders keep the current mode
   if (explicit && !STATIC_MODE){
     STATIC_MODE = true;
-    document.querySelectorAll('#modeToggle .mt-btn').forEach(x=> x.classList.toggle('active', x.dataset.mode==='static'));
+    const at=$('#animToggle'); if(at) at.checked=false;          // R22: reflect the Static default on the pill
   }
   GEN = { data, insight };
   const choice = $('#charttype').value;
@@ -3105,7 +3248,13 @@ function generate(opt){
   const numName = (data.columns.find(c=>c.type==='number')||{}).name || '';
   const catName = (data.columns.filter(c=>c.type==='category'||c.type==='date')[0]||{}).name || '';
   $('#footmeta').textContent = numName ? (catName ? `${numName} by ${catName}` : numName) : catName;
-  det.innerHTML = '';                       // no meta-copy / no option labels
+  // R24: surface wide/pivoted detection so the user can sanity-check the reading (styled like the field hint)
+  if (data.schema && data.schema.wideFormat){
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    det.innerHTML = '<span class="hint">Wide format detected — read as <b>'+esc(data.schema.wideEntity)+'</b> over time ('+esc(data.schema.wideTimePoints.join(', '))+')</span>';
+  } else {
+    det.innerHTML = '';                     // no meta-copy / no option labels
+  }
 
   renderOption(0);                          // paint the first option…
   if (!STATIC_MODE) pulseIn($('#chart'));   // …with the settle-in animation (animated mode only)
@@ -3131,6 +3280,26 @@ function renderOption(idx){
   fig.classList.toggle('static', STATIC_MODE);
   if (STATIC_MODE){ const sv = document.querySelector('#chart svg'); if (sv) try{ addStaticLabels(sv, c, r.type); }catch(e){} }
 
+  // Step 5/6: honest data-coverage note. When a fixed-arity chart (single/pair) is shown with more numeric
+  // series than it can paint — e.g. a pie or lollipop manually picked for multi-series data — name the series
+  // shown and the ones it hides, loudly. UI-only: a create-once element appended to the figure, never inside
+  // the <svg>, so exports (which clone only the svg) never carry it.
+  try {
+    let sn = document.getElementById('seriesNote');
+    if (!sn){ sn = document.createElement('div'); sn.id = 'seriesNote';
+      sn.style.cssText = 'font-size:11.5px;font-style:italic;line-height:1.45;margin:12px 2px 0';
+      fig.appendChild(sn); }
+    const numCols = (data.schema && data.schema.numericColumns) || [];
+    const total = numCols.length, shown = shownSeriesCount(r.type, total);
+    if (total > shown && shown >= 1){
+      const shownCols = numCols.slice(0, shown), hiddenCols = numCols.slice(shown);
+      const lead = shown === 1 ? `Showing ${shownCols[0]} only` : `Showing ${listPhrase(shownCols)}`;
+      sn.textContent = `${lead} — ${listPhrase(hiddenCols)} not displayed in this chart type. Use the arrows to see all series.`;
+      sn.style.color = mix(c.ink, c.bg, 0.42);
+      sn.style.display = 'block';
+    } else { sn.style.display = 'none'; }
+  } catch(e){ /* note is non-essential — never let it break a render */ }
+
   // the panel adopts this option's palette so dark + light variations stay legible
   fig.style.background = c.bg; fig.style.color = c.ink;
   fig.style.setProperty('--ink', c.ink);
@@ -3148,9 +3317,14 @@ function renderOption(idx){
   const note=$('#optNote');
   if(note){
     if(r.why){
-      let t=r.why;
-      if(GEN && GEN.autoMode && CARDS.length<5 && r.lead) t += ' · only '+CARDS.length+' strong fit'+(CARDS.length===1?'':'s')+' for this data';
-      $('#optWhy').textContent=t; $('#optBadge').hidden=!r.lead; note.hidden=false;
+      // R22: attribute the rationale to Canopy's reasoning, by role
+      const ATTR={lead:'Canopy chose this because:', alt:'Why this works:', wild:'Why this is worth considering:'};
+      const role=r.role || (r.lead?'lead':'alt');
+      let body=lcFirst(r.why);
+      if(GEN && GEN.autoMode && CARDS.length<5 && r.lead) body += ' · only '+CARDS.length+' strong fit'+(CARDS.length===1?'':'s')+' for this data';
+      const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      $('#optWhy').innerHTML='<span class="opt-attr">'+esc(ATTR[role]||ATTR.alt)+'</span>'+esc(body);
+      $('#optBadge').hidden=!r.lead; note.hidden=false;
     } else { note.hidden=true; }
   }
   $('#pgPrev').disabled = curOpt <= 0;
@@ -3212,32 +3386,30 @@ function paletteVariants(){
    =================================================================== */
 // STEP 1 — profile the data
 function profileData(data){
-  const cols=data.columns, rows=data.rows;
-  const nums=cols.filter(c=>c.type==='number'), dates=cols.filter(c=>c.type==='date'), cats=cols.filter(c=>c.type==='category');
+  const cols=data.columns;
+  // Read the typed schema (computed once at parse time). Do NOT re-derive column types from rows here.
+  const schema = data.schema || computeSchema(cols, data.rows);
+  const numNames=schema.numericColumns, dateNames=schema.dateColumns, catNames=schema.categoricalColumns;
   const GEO=/\b(country|countries|nation|state|province|region|county|city|cities|postcode|zip|lat|lon|long|geo)\b/i;
-  const labelCol=cats[0]||dates[0];
-  const distinctCats=labelCol ? new Set(rows.map(r=>String(r[labelCol.name]))).size : 0;
-  // part-of-a-whole: one all-positive value column that sums to ~100 / ~1, or whose name reads as a share
-  let partOfWhole=false;
-  if(nums.length>=1){
-    const v0=nums[0], vals=rows.map(r=>+r[v0.name]).filter(x=>!isNaN(x)), sum=d3.sum(vals), allPos=vals.every(x=>x>=0);
-    const pctName=/%|percent|share|proportion/i.test(v0.name);
-    if(allPos && vals.length && (Math.abs(sum-100)<2 || Math.abs(sum-1)<0.02 || pctName)) partOfWhole=true;
-  }
-  const hasNeg=nums.some(c=>rows.some(r=>(+r[c.name])<0));
-  // hierarchy vs flow: two label columns + a value, disambiguated by column names (else assume hierarchy-capable)
-  const FLOW=/\b(source|target|from|to|origin|dest|destination)\b/i, HIER=/\b(parent|child|sub-?category|level|group)\b/i;
-  let hierarchical=false, flow=false;
-  if(cats.length>=2 && nums.length>=1){
-    const n0=cats[0].name, n1=cats[1].name;
-    if(FLOW.test(n0)||FLOW.test(n1)) flow=true; else hierarchical=true;
-    if(HIER.test(n0)||HIER.test(n1)) hierarchical=true;
-  }
+  const dateGran=(cols.find(c=>c.name===dateNames[0])||{}).granularity || null;
+  // higher-level signals layered on top of the schema, for the intent engine
+  const hasTimeAxis=dateNames.length>0;
+  const looksLikePartOfWhole=schema.partOfWhole;
+  const looksLikeRanking=catNames.length>=1 && numNames.length>=1 && !hasTimeAxis && schema.maxCategories>=3;
   return {
-    rows:rows.length, cols:cols.length, nums:nums.length, cats:cats.length, dates:dates.length,
-    hasDate:dates.length>0, dateCount:dates.length, dateGran:dates[0]?dates[0].granularity:null,
-    geo:cats.some(c=>GEO.test(c.name)), distinctCats, partOfWhole, hasNeg, hierarchical, flow,
-    twoGroups:nums.length===2 && cats.length>=1, points:rows.length*Math.max(1,nums.length)
+    // ── existing profile keys (unchanged shape; values now sourced from the schema) ──
+    rows:schema.rowCount, cols:cols.length, nums:schema.seriesCount, cats:catNames.length, dates:dateNames.length,
+    hasDate:hasTimeAxis, dateCount:dateNames.length, dateGran,
+    geo:catNames.some(n=>GEO.test(n)), distinctCats:schema.maxCategories,
+    partOfWhole:schema.partOfWhole, hasNeg:schema.hasNegatives,
+    hierarchical:schema.isHierarchical, flow:schema.isFlow,
+    twoGroups:schema.seriesCount===2 && catNames.length>=1, points:schema.rowCount*Math.max(1,schema.seriesCount),
+    // ── typed contract + new higher-level signals (read by the engine; schema passes through intact) ──
+    schema, isMultiSeries:schema.isMultiSeries, seriesCount:schema.seriesCount,
+    numericColumns:numNames, categoricalColumns:catNames, dateColumns:dateNames,
+    hasTimeAxis, looksLikePartOfWhole, looksLikeRanking,
+    // R24: pivoted/wide time series — numeric columns are time points for one measure
+    wideFormat:!!schema.wideFormat, wideCount:(schema.wideTimePoints?schema.wideTimePoints.length:0)
   };
 }
 // STEP 2 — infer purpose(s) from profile + insight keywords; profile wins on conflicts
@@ -3281,14 +3453,15 @@ function inferIntents(p, insight){
   if(has(/\b(spread|distribution|distributed|range|ranges|varies|variation|variance|concentrated|clustered|skewed|std ?dev|outliers?|\btail\b|histogram|every (data ?)?point)\b/)) add('distribution',4);
   if(has(/\b(deviation|gap|shortfall|overshoot|surplus|deficit|against (target|budget|plan)|vs (budget|plan|target)|off plan|ahead of plan|behind plan|above target|below target|net change)\b/)) add('deviation',3);
   // ---- profile-driven structural signals (weight 6 — the data shape takes priority over both keyword and NLP cues) ----
-  if(p.hasDate) add('change-over-time',6);
+  if(p.hasDate || p.wideFormat) add('change-over-time',6);    // R24: pivoted/wide time columns ARE a time axis
   if(p.flow) add('flow',6);
   if(p.hierarchical) add('hierarchy',6);
   if(p.partOfWhole) add('part-to-whole',6);
   // ---- softer profile hints (weight 2-3 — only steer when no explicit/structural signal dominates) ----
-  if(p.nums>=2) add('correlation',2);
-  if(p.twoGroups) add('comparison',2);
-  if(p.cats>=1 && p.nums>=1 && !p.hasDate) { add('comparison',3); add('ranking',2); }
+  if(p.nums>=2 && !p.wideFormat) add('correlation',2);        // wide time points are not correlated variables
+  if(p.twoGroups && !p.wideFormat) add('comparison',2);
+  // R24: for wide data the "categories" are time points, not things to compare — suppress the comparison/ranking structural signal
+  if(p.cats>=1 && p.nums>=1 && !p.hasDate && !p.wideFormat) { add('comparison',3); add('ranking',2); }
   if(p.cats===0 && p.nums>=1) add('distribution',2);
   add('comparison',1);                          // baseline so a safe fallback always exists
   // ---- Layer B: NLP boosts, additive on top of the keyword/profile scores (capped ≤1.5 so they refine, never override the data shape) ----
@@ -3302,7 +3475,8 @@ function dominantIntent(I){ let best=null,bw=-1; Object.keys(I).sort().forEach(k
 const CHART_META = {
   // honest defaults — modest family weights, but a guaranteed lead in the narrow "simple data" cases below
   line:      { fams:{'change-over-time':2,comparison:1}, ok:p=>p.nums>=1&&(p.hasDate||p.cats>=1), why:'A clean line tracks values across an ordered axis',
-               leadOK:(p,I)=> p.hasDate && p.nums<=3 && !p.partOfWhole && dominantIntent(I)==='change-over-time' },
+               leadOK:(p,I)=> (p.hasDate && p.nums<=3 && !p.partOfWhole && dominantIntent(I)==='change-over-time')
+                            || (p.wideFormat && p.wideCount>=3 && dominantIntent(I)==='change-over-time' && (I['ranking']||0)<3) },
   bar:       { fams:{comparison:2,ranking:1}, ok:p=>p.nums>=1&&p.cats>=1, why:'Clean bars compare a value across a few categories',
                leadOK:(p,I)=> p.nums===1 && !p.hasDate && !p.partOfWhole && !p.hierarchical && !p.flow && p.distinctCats<=16 && (dominantIntent(I)==='comparison'||dominantIntent(I)==='ranking') },
   radial:    { fams:{comparison:3,ranking:2,'part-to-whole':1}, ok:p=>p.nums>=1&&p.cats>=1, why:'Compares values across categories in a compact radial form' },
@@ -3359,8 +3533,34 @@ const CHART_META = {
   flowfield: { fams:{distribution:1,correlation:1}, creative:true, ok:p=>p.nums>=1, why:'A flow field renders values as an abstract current' },
   halo:      { fams:{'part-to-whole':1,comparison:1}, creative:true, ok:p=>p.nums>=1&&p.cats>=1, why:'Concentric halo rings give magnitudes a poster feel' }
 };
+// Step 4 — explicit per-chart series shape, merged onto each CHART_META object:
+//   'single' = reads ONE numeric column → excluded from Auto when the data has >1 series (it would drop the rest)
+//   'pair'   = reads exactly TWO numeric columns (dumbbell/slope/range/connected) → excluded when >2 series
+//   'multi'  = designed to render ALL numeric columns as series (grouped bar, radar, heat matrix, …)
+//   'both'   = renders either count gracefully (line, bar)
+// Rule of thumb: a chart is 'single'/'pair' only if it would silently DROP columns on wider data — those are the
+// ones kept out of Auto so the engine never leads a chart that hides series. Charts that consume several numerics
+// as one composite (OHLC candlestick, start/end gantt) are 'multi'/'both' — they hide nothing.
+const SERIES_SHAPE = {
+  line:'both', bar:'both', radial:'single', dotstrip:'single', lollipop:'single', isobar:'single',
+  bullet:'single', diverging:'single', dumbbell:'pair', range:'pair', slope:'pair', ridge:'both',
+  stream:'multi', bump:'multi', connected:'pair', horizon:'single', calendar:'single', race:'multi',
+  proptimeline:'single', gantt:'both', candlestick:'multi', pie:'single', waffle:'single', stacked100:'multi',
+  treemap:'single', sunburst:'single', pack:'single', marimekko:'multi', proparea:'single', isotype:'single',
+  pictogram:'single', funnel:'single', propcircles:'single', beeswarm:'single', violin:'single', barcode:'single',
+  scatter:'multi', quadrant:'multi', bcg:'multi', bubblematrix:'both', parallel:'multi', contour:'multi',
+  voronoi:'multi', constellation:'single', rankeddotgrid:'single', waterfall:'single', sankey:'single',
+  flow:'single', pyramid:'multi', heatmatrix:'multi', smallmult:'multi', radialheat:'single', spiral:'single',
+  flowfield:'single', halo:'single', radar:'multi'
+};
+Object.keys(CHART_META).forEach(t=>{ CHART_META[t].seriesShape = SERIES_SHAPE[t] || 'single'; });
+// charts purpose-built for several series — nudged ahead of generic forms when the data is multi-series
+const MULTI_SERIES_BOOST = new Set(['bar','line','radar','parallel','slope','smallmult','bump','stream']);
 function chartScore(type, p, I){
   const m=CHART_META[type]; if(!m || !RENDERERS[type]) return null;
+  // Step 4: a fixed-arity chart on wider data would silently drop columns — keep it out of Auto entirely.
+  if(p.seriesCount>1 && m.seriesShape==='single') return null;
+  if(p.seriesCount>2 && m.seriesShape==='pair')   return null;
   if(!m.ok(p, I)) return null;                                   // hard exclusion
   // dominant-family score (so a chart built for the data's main purpose wins, not a jack-of-all-trades)
   let best=0, rest=0;
@@ -3370,6 +3570,12 @@ function chartScore(type, p, I){
   let s=best + 0.25*rest;                                       // small bonus for serving secondary intents too
   if(m.creative) s-=0.4;                                        // tie-break: prefer conventional charts for the lead
   if(leads) s+=100;                                             // honest default wins the lead in genuinely simple cases only
+  if(p.isMultiSeries && MULTI_SERIES_BOOST.has(type)) s+=2.5;   // Step 4: favour charts that render every series
+  // R24: pivoted/wide time series — steer to a time-series form, not a comparison form
+  if(p.wideFormat){
+    if(p.seriesCount>=3 && (type==='line'||type==='bump')) s+=2.5;   // ≥3 time points → multi-line trend / bump
+    if(p.seriesCount===2 && type==='slope') s+=100;                  // exactly 2 time points → slope (before vs after)
+  }
   return s;
 }
 function primaryFamily(type, I){
@@ -3396,12 +3602,20 @@ function selectAuto(data, insight){
   const wilds=[];
   take(wilds, o=> o.m.creative, 2);
   take(wilds, ()=>true, 2);                                 // (only fills from charts that already passed exclusions)
+  // R22: store the RAW rationale + role; renderOption applies the attributed prefix (Canopy chose this because: / Why this works: / …)
   const out=[{type:lead, lead:true, role:'lead', why:CHART_META[lead].why}];
-  alts.forEach(t=> out.push({type:t, lead:false, role:'alt', why:'Close alternative — '+lcFirst(CHART_META[t].why)}));
-  wilds.forEach(t=> out.push({type:t, lead:false, role:'wild', why:'Wildcard — '+lcFirst(CHART_META[t].why)}));
+  alts.forEach(t=> out.push({type:t, lead:false, role:'alt', why:CHART_META[t].why}));
+  wilds.forEach(t=> out.push({type:t, lead:false, role:'wild', why:CHART_META[t].why}));
   return out.slice(0,5);
 }
 function lcFirst(s){ return s ? s.charAt(0).toLowerCase()+s.slice(1) : s; }
+// natural English list: ['A'] → "A"; ['A','B'] → "A and B"; ['A','B','C'] → "A, B and C"
+function listPhrase(arr){ arr=(arr||[]).map(String); if(arr.length<=1) return arr[0]||''; if(arr.length===2) return arr[0]+' and '+arr[1]; return arr.slice(0,-1).join(', ')+' and '+arr[arr.length-1]; }
+// how many numeric series a chart actually paints, from its declared series shape (single=1, pair=2, multi/both=all)
+function shownSeriesCount(type, totalSeries){
+  const shape=(CHART_META[type]&&CHART_META[type].seriesShape) || SERIES_SHAPE[type] || 'both';
+  return shape==='single' ? 1 : shape==='pair' ? 2 : totalSeries;
+}
 // thin wrapper kept for callers that only need the type list
 function pickAutoTypes(data, insight){ return selectAuto(data, insight).map(o=>o.type); }
 
@@ -3535,13 +3749,56 @@ const EXAMPLES = [
   { data:`Year, EV sales 000s, Chargepoints 000s\n2019, 38, 17\n2020, 108, 22\n2021, 190, 29\n2022, 267, 37\n2023, 315, 53\n2024, 382, 73`,
     insight:`Charging infrastructure is struggling to keep pace with EV sales.` },
   { data:`Funding stage, Companies still active %\nPre-seed, 100\nSeed, 60\nSeries A, 38\nSeries B, 23\nSeries C, 14\nExit, 8`,
-    insight:`Barely one in twelve pre-seed startups makes it through to an exit.` },
+    insight:`Barely one in ten startups is still standing by the exit stage.` },
   { data:`Parent, Child, Value\n, Technology, 0\nTechnology, Cloud, 120\nTechnology, Devices, 80\nTechnology, Software, 95\n, Finance, 0\nFinance, Banking, 200\nFinance, Insurance, 90\n, Healthcare, 0\nHealthcare, Pharma, 110\nHealthcare, Devices, 60`,
     insight:`Revenue concentrates in finance, but technology spreads across more lines.` },
   { data:`Column, Segment, Value\nNorth, Product A, 40\nNorth, Product B, 30\nNorth, Product C, 30\nSouth, Product A, 60\nSouth, Product B, 25\nSouth, Product C, 15\nWest, Product A, 20\nWest, Product B, 50\nWest, Product C, 30`,
     insight:`The South is both the largest region and the most reliant on Product A.` },
   { data:`Source, Target, Value\nAwareness, Consideration, 1000\nConsideration, Trial, 600\nTrial, Purchase, 300\nPurchase, Repeat, 180\nConsideration, Lapsed, 400`,
-    insight:`The steepest drop-off is between awareness and consideration.` }
+    insight:`The steepest drop-off is between awareness and consideration.` },
+  // ── R22: new examples — realistic PA client industries, varied data shapes ──
+  // multi-series comparison (energy, 4 numeric series)
+  { data:`Country, Coal, Gas, Nuclear, Renewables\nGermany, 27, 15, 6, 44\nFrance, 1, 7, 67, 23\nPoland, 70, 8, 0, 17\nSpain, 3, 17, 21, 50\nUK, 2, 38, 15, 43`,
+    insight:`France leans on nuclear while Poland is still locked into coal.` },
+  // quarterly time-series (financial services)
+  { data:`Quarter, Net interest income £m\nQ1 2023, 412\nQ2 2023, 438\nQ3 2023, 467\nQ4 2023, 489\nQ1 2024, 502\nQ2 2024, 511\nQ3 2024, 498\nQ4 2024, 524`,
+    insight:`Net interest income climbed with rates before easing in late 2024.` },
+  // monthly two-series time (healthcare)
+  { data:`Month, Referrals 000s, Treatments 000s\nJan 2024, 142, 128\nFeb 2024, 138, 131\nMar 2024, 151, 134\nApr 2024, 149, 139\nMay 2024, 156, 141\nJun 2024, 162, 145`,
+    insight:`Referrals outpace treatments every month, widening the elective backlog.` },
+  // part-of-whole, 6 segments (government)
+  { data:`Department, Share of budget %\nHealth, 38\nWelfare, 19\nEducation, 16\nDefence, 12\nTransport, 8\nOther, 7`,
+    insight:`Health alone absorbs nearly four in every ten pounds of departmental spend.` },
+  // flow (consumer / retail conversion)
+  { data:`Source, Target, Users\nHomepage, Product page, 50000\nProduct page, Basket, 18000\nBasket, Checkout, 9000\nCheckout, Purchase, 6200`,
+    insight:`Most shoppers fall away between the product page and the basket.` },
+  // ranking that changes over time (bump territory — streaming)
+  { data:`Service, 2021, 2022, 2023, 2024\nPrime Video, 3, 3, 1, 1\nNetflix, 1, 1, 2, 2\nDisney+, 5, 4, 3, 3\nNow TV, 4, 5, 5, 4\nApple TV+, 6, 6, 4, 5\nParamount+, 2, 2, 6, 6`,
+    insight:`Prime Video climbed the rankings to overtake Netflix as the most-used service.` },
+  // CREATIVE EXAMPLE — two-variable correlation leads to an editorial quadrant scatter (government & health)
+  { data:`Area, Deprivation score, Life expectancy\nBlackpool, 42, 74\nKnowsley, 40, 76\nManchester, 35, 77\nNottingham, 31, 76\nLeeds, 26, 79\nYork, 12, 83\nCambridge, 14, 82\nWokingham, 6, 85`,
+    insight:`Life expectancy falls steeply as deprivation rises across local authorities.` },
+  // hierarchy (financial services revenue tree)
+  { data:`Parent, Child, Value\n, Retail Banking, 0\nRetail Banking, Mortgages, 320\nRetail Banking, Cards, 180\nRetail Banking, Savings, 140\n, Markets, 0\nMarkets, Equities, 260\nMarkets, FX, 190\n, Wealth, 0\nWealth, Advisory, 110\nWealth, Funds, 95`,
+    insight:`Mortgages and equities are the two engine rooms of group revenue.` },
+  // multi-series comparison (retail channels, 3 numeric series)
+  { data:`Category, In-store, Online, Click & collect\nGrocery, 280, 95, 60\nClothing, 120, 210, 45\nElectronics, 90, 240, 70\nHome, 110, 130, 38\nBeauty, 70, 150, 22`,
+    insight:`Electronics and clothing have flipped online-first while grocery stays in-store.` },
+  // single-series ranking (energy — matches the offshore-wind placeholder theme)
+  { data:`Country, Offshore wind GW\nChina, 31.4\nUK, 14.8\nGermany, 8.3\nNetherlands, 4.7\nDenmark, 2.7\nBelgium, 2.3`,
+    insight:`China now has more offshore wind capacity than the rest of the field combined.` },
+  // part-of-whole (consumer / platform revenue mix)
+  { data:`Revenue stream, Share %\nSubscriptions, 46\nTransaction fees, 24\nAdvertising, 18\nData services, 8\nOther, 4`,
+    insight:`Subscriptions now make up nearly half of platform revenue.` },
+  // multi-series time-series (government transport)
+  { data:`Year, Rail, Bus, Cycling\n2019, 1.7, 4.1, 0.8\n2020, 0.6, 2.2, 1.1\n2021, 1.0, 2.8, 1.0\n2022, 1.5, 3.3, 0.9\n2023, 1.7, 3.6, 0.9\n2024, 1.8, 3.8, 0.9`,
+    insight:`Bus journeys never fully recovered from the pandemic while cycling held its gains.` },
+  // CREATIVE EXAMPLE — a multi-hop energy flow leads to a Sankey (editorial, ribbon-style)
+  { data:`Source, Target, TWh\nGas, Power, 110\nGas, Heat, 95\nWind, Power, 80\nNuclear, Power, 45\nPower, Homes, 120\nPower, Industry, 110\nHeat, Homes, 95`,
+    insight:`Most of the gas burned for power ends up heating homes, not running industry.` },
+  // CREATIVE EXAMPLE — a league table over four seasons leads to a bump chart (ranks crossing over time)
+  { data:`Club, 2021, 2022, 2023, 2024\nMan City, 1, 1, 1, 1\nArsenal, 8, 5, 2, 2\nLiverpool, 3, 2, 5, 3\nNewcastle, 12, 11, 4, 7\nMan Utd, 2, 6, 3, 8\nSpurs, 7, 4, 8, 5`,
+    insight:`Arsenal climbed the rankings to overtake United, while Newcastle broke into the top four.` }
 ];
 // Random order, no example repeats until all 15 have been shown.
 let exQueue = [];
@@ -4050,16 +4307,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // pager controls — page through the 5 generated options, one full-width chart at a time
   $('#pgPrev').addEventListener('click', ()=> navTo(-1));
   $('#pgNext').addEventListener('click', ()=> navTo(1));
-  // R15 item 2: Animated / Static toggle — applies instantly to the current chart, no regenerate
-  document.querySelectorAll('#modeToggle .mt-btn').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      const wantStatic = b.dataset.mode === 'static';
+  // R22: Static/Animated pill — checkbox checked = Animated, unchecked = Static (the default). Applies instantly, no regenerate.
+  (function(){ const at=$('#animToggle'); if(!at) return;
+    at.checked = !STATIC_MODE;                                   // reflect current mode on load
+    at.addEventListener('change', ()=>{
+      const wantStatic = !at.checked;
       if (wantStatic === STATIC_MODE) return;
       STATIC_MODE = wantStatic;
-      document.querySelectorAll('#modeToggle .mt-btn').forEach(x=> x.classList.toggle('active', x.dataset.mode===b.dataset.mode));
       if (GEN && CARDS.length){ stopAnims(); renderOption(curOpt); }
     });
-  });
+  })();
   // R21 item 4: transparent-background preview — checkerboard behind the chart (preview only; never written into any export)
   (function(){ const tb = $('#transparentBg'); if (tb) tb.addEventListener('change', ()=>{ const ch = $('#chart'); if (ch) ch.classList.toggle('transparent-preview', tb.checked); }); })();
   // chip click → colour-picker popover (native picker + hex field + close button)
