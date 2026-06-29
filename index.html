@@ -1202,6 +1202,26 @@ function makeFmt(values){
   return d3.format(',.1~f');
 }
 
+// R25 (Pass 1B): global text-fit — never let text overflow its container. Accepts a d3 selection or DOM node.
+// Truncates with a binary search (+ "…") to fit maxWidth; hides the element if even one char + ellipsis won't fit,
+// or if maxHeight is given and exceeded. Idempotent and safe to call on any <text> after it is appended.
+function fitText(el, maxWidth, maxHeight){
+  const node = el && el.node ? el.node() : el;
+  if(!node || !node.getBBox) return;
+  let bb; try{ bb=node.getBBox(); }catch(e){ return; }
+  if(maxHeight!=null && bb.height>maxHeight+0.5){ node.setAttribute('display','none'); return; }
+  if(bb.width<=maxWidth+0.5) return;                                   // already fits
+  const full=node.textContent;
+  node.textContent='…';
+  let ew; try{ ew=node.getBBox().width; }catch(e){ ew=0; }
+  if(ew>maxWidth){ node.setAttribute('display','none'); node.textContent=full; node.setAttribute('display','none'); return; }
+  let lo=1, hi=full.length, best='…';
+  while(lo<=hi){ const mid=(lo+hi)>>1; node.textContent=full.slice(0,mid).replace(/\s+$/,'')+'…';
+    let w; try{ w=node.getBBox().width; }catch(e){ w=Infinity; }
+    if(w<=maxWidth){ best=node.textContent; lo=mid+1; } else hi=mid-1; }
+  node.textContent=best;
+}
+
 /* ===================================================================
    RENDERERS — each draws into a d3 <svg> selection
    =================================================================== */
@@ -1244,6 +1264,7 @@ function renderRadial(svg, ctx){
 
   g.selectAll('.bar').data(data).join('path')
     .attr('class','cv-mark cv-in')
+    .attr('data-labelled','true')
     .style('--d', (d,i)=> (i*0.045)+'s')
     .attr('d', arc)
     .attr('fill', (d,i)=> i===0 ? c.accent : c.accent2)
@@ -1528,8 +1549,7 @@ function renderWaffle(svg, ctx){
     row.append('rect').attr('width',13).attr('height',13).attr('rx',3).attr('y',-2).attr('fill',shades[i]);
     row.append('text').attr('x',22).attr('y',2).attr('class','cv-val').attr('font-size','17px').attr('fill',c.ink)
        .attr('dominant-baseline','middle').text(d.floor+'%');
-    row.append('text').attr('x',22).attr('y',19).attr('font-size','11.5px').attr('fill',c.inkSoft)
-       .text(d.label.length>18?d.label.slice(0,17)+'…':d.label);
+    const wl=row.append('text').attr('x',22).attr('y',19).attr('font-size','11.5px').attr('fill',c.inkSoft).text(d.label); fitText(wl, W-(ox+lx+22)-10);
   });
   return {n:data.length};
 }
@@ -2113,18 +2133,17 @@ function renderTreemap(svg,ctx){
   if(twoLevel) groups.forEach(grp=>{
     const x0=grp.x0,y0=grp.y0,w=grp.x1-grp.x0;
     svg.append('rect').attr('x',x0).attr('y',y0).attr('width',w).attr('height',grp.y1-grp.y0).attr('fill','none').attr('stroke',mix(grp._base,c.bg,.25)).attr('stroke-width',1).attr('rx',5);
-    if(w>44) svg.append('text').attr('x',x0+7).attr('y',y0+14).attr('fill',mix(grp._base,c.ink,.35)).attr('font-size','11.5px').attr('font-weight',700)
-      .text(grp.data.name.length>Math.floor(w/8)?grp.data.name.slice(0,Math.floor(w/8)-1)+'…':grp.data.name);
+    if(w>44){ const gt=svg.append('text').attr('x',x0+7).attr('y',y0+14).attr('fill',mix(grp._base,c.ink,.35)).attr('font-size','11.5px').attr('font-weight',700).text(grp.data.name); fitText(gt, w-14); }
   });
   root.leaves().forEach((leaf,i)=>{
     const grp=twoLevel?leaf.parent:null, base=grp?grp._base:col(i);
     const fill=twoLevel? shadeOf(base,c.bg, grp.children.indexOf(leaf)) : col(i);
     const x0=leaf.x0,y0=leaf.y0,w=leaf.x1-leaf.x0,h=leaf.y1-leaf.y0, tc=contrastInk(fill);
     const g=svg.append('g').attr('class','cv-in').style('--d',(i*0.02)+'s').attr('transform',`translate(${x0},${y0})`);
-    g.append('rect').attr('class','cv-mark').attr('width',w).attr('height',h).attr('rx',3).attr('fill',fill)
+    g.append('rect').attr('class','cv-mark').attr('data-labelled','true').attr('width',w).attr('height',h).attr('rx',3).attr('fill',fill)
       .attr('data-label',leaf.data.name+(grp?' · '+grp.data.name:'')).attr('data-value',fmt(leaf.value)+' ('+Math.round(leaf.value/tot*100)+'%)');
-    if(w>52&&h>26){ g.append('text').attr('x',7).attr('y',17).attr('fill',tc).attr('font-size','12px').attr('font-weight',600).text(leaf.data.name.slice(0,Math.floor(w/8)));
-      if(h>42) g.append('text').attr('x',7).attr('y',33).attr('fill',tc).attr('opacity',.85).attr('font-size','11px').text(fmt(leaf.value)); }
+    if(w>52&&h>26){ const nt=g.append('text').attr('x',7).attr('y',17).attr('fill',tc).attr('font-size','12px').attr('font-weight',600).text(leaf.data.name); fitText(nt, w-12);
+      if(h>42){ const vt=g.append('text').attr('x',7).attr('y',33).attr('fill',tc).attr('opacity',.85).attr('font-size','11px').text(fmt(leaf.value)); fitText(vt, w-12); } }
   });
   if(H0.mismatch) svg.append('text').attr('x',8).attr('y',H-7).attr('fill',c.accent).attr('font-size','10.5px').attr('font-style','italic').text('⚠ a parent total differed from its children — children’s sum used');
   return {n:root.leaves().length};
@@ -2147,9 +2166,9 @@ function renderSunburst(svg,ctx){
     const base=col(gi<0?0:gi), fill=d.depth===1?base:shadeOf(base,c.bg, d.parent.children.indexOf(d));
     g.append('path').attr('class','cv-mark cv-in').style('--d',(i*0.02)+'s').attr('d',arc(d)).attr('fill',fill)
       .attr('data-label',d.ancestors().filter(a=>a.depth).reverse().map(a=>a.data.name).join(' · ')).attr('data-value',fmt(d.value)+' ('+Math.round(d.value/tot*100)+'%)');
-    if(d.x1-d.x0>0.16){ const mid=(d.x0+d.x1)/2, lr=(ringIn(d)+ringOut(d))/2;
-      g.append('text').attr('class','cv-in').style('--d',(0.3+i*0.02)+'s').attr('x',Math.sin(mid)*lr).attr('y',-Math.cos(mid)*lr).attr('text-anchor','middle').attr('dominant-baseline','middle')
-        .attr('fill',contrastInk(fill)).attr('font-size','10.5px').text(d.data.name.length>11?d.data.name.slice(0,10)+'…':d.data.name); }
+    if(d.x1-d.x0>0.16){ const mid=(d.x0+d.x1)/2, lr=(ringIn(d)+ringOut(d))/2, chord=(d.x1-d.x0)*lr, ringW=ringOut(d)-ringIn(d);
+      const at=g.append('text').attr('class','cv-in').style('--d',(0.3+i*0.02)+'s').attr('x',Math.sin(mid)*lr).attr('y',-Math.cos(mid)*lr).attr('text-anchor','middle').attr('dominant-baseline','middle')
+        .attr('fill',contrastInk(fill)).attr('font-size','10.5px').text(d.data.name); fitText(at, Math.max(chord,ringW)-4); }
   });
   g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','13px').attr('font-weight',600).text(fmt(tot));
   g.append('text').attr('text-anchor','middle').attr('y',16).attr('fill',c.inkSoft).attr('font-size','10.5px').text('total');
@@ -2180,12 +2199,12 @@ function renderMarimekko(svg,ctx){
   let x=m.l;
   columns.forEach((cn,ci)=>{
     const cw=colTot[ci]/grand*innerW, ct=colTot[ci]; let y=top;
-    svg.append('text').attr('x',x+cw/2).attr('y',top-22).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11.5px').attr('font-weight',600).text(cn.length>Math.floor(cw/7)?cn.slice(0,Math.floor(cw/7)):cn);
-    svg.append('text').attr('x',x+cw/2).attr('y',top-8).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','10.5px').text(Math.round(ct/grand*100)+'% of total');
+    const cht=svg.append('text').attr('x',x+cw/2).attr('y',top-22).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11.5px').attr('font-weight',600).text(cn); fitText(cht, cw-4);
+    const cst=svg.append('text').attr('x',x+cw/2).attr('y',top-8).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','10.5px').text(Math.round(ct/grand*100)+'% of total'); fitText(cst, cw-2);
     segments.forEach(sn=>{ const v=matrix[cn][sn], frac=ct?v/ct:0, sh=frac*(bot-top); if(sh<=0) return;
-      svg.append('rect').attr('class','cv-mark cv-in').style('--d',(ci*0.05)+'s').attr('x',x).attr('y',y).attr('width',Math.max(0,cw-1)).attr('height',sh).attr('fill',segColor[sn])
+      svg.append('rect').attr('class','cv-mark cv-in').attr('data-labelled','true').style('--d',(ci*0.05)+'s').attr('x',x).attr('y',y).attr('width',Math.max(0,cw-1)).attr('height',sh).attr('fill',segColor[sn])
         .attr('data-label',cn+' · '+sn).attr('data-value',fmt(v)+' ('+Math.round(frac*100)+'%)');
-      if(cw>34 && sh>15) svg.append('text').attr('x',x+cw/2).attr('y',y+sh/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',contrastInk(segColor[sn])).attr('font-size','10.5px').attr('font-weight',600).text(Math.round(frac*100)+'%');
+      if(cw>34 && sh>15){ const st=svg.append('text').attr('x',x+cw/2).attr('y',y+sh/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',contrastInk(segColor[sn])).attr('font-size','10.5px').attr('font-weight',600).text(Math.round(frac*100)+'%'); fitText(st, cw-4, sh-2); }
       y+=sh; });
     x+=cw;
   });
@@ -2231,16 +2250,16 @@ function renderPack(svg,ctx){
   // group bubbles first (faint container with a name)
   if(twoLevel) (root.children||[]).forEach((grp,gi)=>{ grp._base=col(gi);
     g0.append('circle').attr('cx',grp.x).attr('cy',grp.y).attr('r',grp.r).attr('fill',mix(grp._base,c.bg,.86)).attr('stroke',mix(grp._base,c.bg,.45)).attr('stroke-width',1);
-    if(grp.r>30) g0.append('text').attr('x',grp.x).attr('y',grp.y-grp.r+15).attr('text-anchor','middle').attr('fill',mix(grp._base,c.ink,.4)).attr('font-size','11.5px').attr('font-weight',700).text(grp.data.name.length>14?grp.data.name.slice(0,13)+'…':grp.data.name);
+    if(grp.r>30){ const gt=g0.append('text').attr('x',grp.x).attr('y',grp.y-grp.r+15).attr('text-anchor','middle').attr('fill',mix(grp._base,c.ink,.4)).attr('font-size','11.5px').attr('font-weight',700).text(grp.data.name); fitText(gt, grp.r*1.5); }
   });
   root.leaves().forEach((leaf,i)=>{
     const grp=twoLevel?leaf.parent:null, base=grp?grp._base:col(i);
     const fill=twoLevel? shadeOf(base,c.bg, grp.children.indexOf(leaf)) : col(i), tc=contrastInk(fill);
     const g=svg.append('g').attr('class','cv-in').style('--d',(i*0.02)+'s').attr('transform',`translate(${leaf.x+2},${leaf.y+2})`);
-    g.append('circle').attr('class','cv-mark').attr('r',leaf.r).attr('fill',fill).attr('fill-opacity',.95)
+    g.append('circle').attr('class','cv-mark').attr('data-labelled','true').attr('r',leaf.r).attr('fill',fill).attr('fill-opacity',.95)
       .attr('data-label',leaf.data.name+(grp?' · '+grp.data.name:'')).attr('data-value',fmt(leaf.value)+' ('+Math.round(leaf.value/tot*100)+'%)');
-    if(leaf.r>22){ g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',tc).attr('font-size',Math.min(14,leaf.r/2.4)+'px').attr('font-weight',600).text(leaf.data.name.length>9?leaf.data.name.slice(0,8)+'…':leaf.data.name);
-      if(leaf.r>34) g.append('text').attr('text-anchor','middle').attr('y',16).attr('fill',tc).attr('opacity',.85).attr('font-size','11px').text(fmt(leaf.value)); }
+    if(leaf.r>22){ const nt=g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',tc).attr('font-size',Math.min(14,leaf.r/2.4)+'px').attr('font-weight',600).text(leaf.data.name); fitText(nt, leaf.r*1.7);
+      if(leaf.r>34){ const vt=g.append('text').attr('text-anchor','middle').attr('y',16).attr('fill',tc).attr('opacity',.85).attr('font-size','11px').text(fmt(leaf.value)); fitText(vt, leaf.r*1.7); } }
   });
   if(H0.mismatch) svg.append('text').attr('x',8).attr('y',H-7).attr('fill',c.accent).attr('font-size','10.5px').attr('font-style','italic').text('⚠ a parent total differed from its children — children’s sum used');
   return {n:root.leaves().length};
@@ -2254,9 +2273,9 @@ function renderPropCircles(svg,ctx){
   svg.attr('viewBox',`0 0 ${W} ${H}`);
   data.forEach((d,i)=>{
     const cx=gap*i+gap/2;
-    svg.append('circle').attr('class','cv-mark').attr('cx',cx).attr('cy',baseY).attr('r',r(d.value)).attr('fill',col(i)).attr('fill-opacity',.85).attr('data-label',d.label).attr('data-value',fmt(d.value)).style('--d',(i*0.04)+'s').classed('cv-in',true);
-    svg.append('text').attr('x',cx).attr('y',baseY+rMax+18).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11.5px').text(d.label.length>10?d.label.slice(0,9)+'…':d.label);
-    svg.append('text').attr('x',cx).attr('y',baseY+rMax+33).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(fmt(d.value));
+    svg.append('circle').attr('class','cv-mark').attr('data-labelled','true').attr('cx',cx).attr('cy',baseY).attr('r',r(d.value)).attr('fill',col(i)).attr('fill-opacity',.85).attr('data-label',d.label).attr('data-value',fmt(d.value)).style('--d',(i*0.04)+'s').classed('cv-in',true);
+    const lt=svg.append('text').attr('x',cx).attr('y',baseY+rMax+18).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11.5px').text(d.label); fitText(lt, gap-6);
+    const vt=svg.append('text').attr('x',cx).attr('y',baseY+rMax+33).attr('text-anchor','middle').attr('fill',c.inkSoft).attr('font-size','11px').text(fmt(d.value)); fitText(vt, gap-6);
   });
   return {n:data.length};
 }
@@ -2788,12 +2807,12 @@ function renderHeatMatrix(svg,ctx){
   const cw=(W-m.l-m.r)/colLabels.length, ch=Math.max(26,Math.min(46,440/rows.length)), H=m.t+rows.length*ch+m.b; svg.attr('viewBox',`0 0 ${W} ${H}`);
   const all=rows.flatMap(r=>nums.map(n=>+r[n.name])).filter(v=>!isNaN(v)), lo=d3.min(all), hi=d3.max(all);
   const sc=d3.scaleLinear().domain([lo,hi]).range([0,1]), g=svg.append('g');
-  colLabels.forEach((cl,j)=>g.append('text').attr('x',m.l+cw*j+cw/2).attr('y',m.t-12).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11px').attr('font-weight','600').text(cl.length>12?cl.slice(0,11)+'…':cl));
+  colLabels.forEach((cl,j)=>{ const t=g.append('text').attr('x',m.l+cw*j+cw/2).attr('y',m.t-12).attr('text-anchor','middle').attr('fill',c.ink).attr('font-size','11px').attr('font-weight','600').text(cl); fitText(t, cw-6); });
   rows.forEach((r,i)=>{
-    g.append('text').attr('x',m.l-8).attr('y',m.t+ch*i+ch/2).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','11px').text(rowLabels[i].length>22?rowLabels[i].slice(0,21)+'…':rowLabels[i]);
+    const rt=g.append('text').attr('x',m.l-8).attr('y',m.t+ch*i+ch/2).attr('text-anchor','end').attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','11px').text(rowLabels[i]); fitText(rt, m.l-12);
     nums.forEach((n,j)=>{ const v=+r[n.name], x0=m.l+cw*j, y0=m.t+ch*i, k=isNaN(v)?0:sc(v);
-      g.append('rect').attr('class','cv-mark').attr('x',x0+1.5).attr('y',y0+1.5).attr('width',cw-3).attr('height',ch-3).attr('rx',3).attr('fill',isNaN(v)?mix(c.ink,c.bg,.95):mix(c.bg,c.accent,0.12+0.82*k)).attr('data-label',rowLabels[i]+' · '+n.name).attr('data-value',isNaN(v)?'—':fmt(v));
-      if(!isNaN(v)) g.append('text').attr('x',x0+cw/2).attr('y',y0+ch/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',k>0.58?contrastInk(mix(c.bg,c.accent,.85)):c.ink).attr('font-size','10.5px').attr('font-weight','600').text(fmt(v));
+      g.append('rect').attr('class','cv-mark').attr('data-labelled','true').attr('x',x0+1.5).attr('y',y0+1.5).attr('width',cw-3).attr('height',ch-3).attr('rx',3).attr('fill',isNaN(v)?mix(c.ink,c.bg,.95):mix(c.bg,c.accent,0.12+0.82*k)).attr('data-label',rowLabels[i]+' · '+n.name).attr('data-value',isNaN(v)?'—':fmt(v));
+      if(!isNaN(v)){ const vt=g.append('text').attr('x',x0+cw/2).attr('y',y0+ch/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',k>0.58?contrastInk(mix(c.bg,c.accent,.85)):c.ink).attr('font-size','10.5px').attr('font-weight','600').text(fmt(v)); fitText(vt, cw-6, ch-4); }
     });
   });
   return {n:rows.length*nums.length};
@@ -3049,13 +3068,13 @@ function renderPie(svg,ctx){
   const cx=W*0.32, cy=H/2, R=Math.min(W*0.28,H/2-34);
   const pie=d3.pie().sort(null).value(d=>d.value)(data), arc=d3.arc().innerRadius(0).outerRadius(R), col=palOf(c), g=svg.append('g');
   pie.forEach((s,i)=>{ const pct=Math.round(s.data.value/total*100);
-    g.append('path').attr('class','cv-mark cv-in').style('--d',(i*0.05)+'s').attr('transform',`translate(${cx},${cy})`).attr('d',arc(s)).attr('fill',col(i)).attr('stroke',c.bg).attr('stroke-width',1.5).attr('data-label',s.data.label).attr('data-value',fmt(s.data.value)+'  ·  '+pct+'%');
+    g.append('path').attr('class','cv-mark cv-in').attr('data-labelled','true').style('--d',(i*0.05)+'s').attr('transform',`translate(${cx},${cy})`).attr('d',arc(s)).attr('fill',col(i)).attr('stroke',c.bg).attr('stroke-width',1.5).attr('data-label',s.data.label).attr('data-value',fmt(s.data.value)+'  ·  '+pct+'%');
     if(pct>=7 || ctx.static){ const ce=arc.centroid(s), a=Math.atan2(ce[1],ce[0]), lr=R*0.62, lx=cx+Math.cos(a)*lr, ly=cy+Math.sin(a)*lr;
       g.append('text').attr('x',lx).attr('y',ly).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('fill',contrastInk(col(i))).attr('font-size','11px').attr('font-weight','600').text(pct+'%'); }
   });
   const lg=svg.append('g').attr('transform',`translate(${cx+R+40},${cy-data.length*13})`);
   data.forEach((d,i)=>{ const yy=i*26; lg.append('rect').attr('x',0).attr('y',yy-9).attr('width',12).attr('height',12).attr('rx',2).attr('fill',col(i));
-    lg.append('text').attr('x',18).attr('y',yy).attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text((d.label.length>16?d.label.slice(0,15)+'…':d.label)+'  '+Math.round(d.value/total*100)+'%'); });
+    const pl=lg.append('text').attr('x',18).attr('y',yy).attr('dominant-baseline','middle').attr('fill',c.ink).attr('font-size','12px').text(d.label+'  '+Math.round(d.value/total*100)+'%'); fitText(pl, W-(cx+R+40+18)-8); });
   return {n:data.length};
 }
 
@@ -3165,6 +3184,8 @@ function addStaticLabels(svgNode, c, type){
   if (!marks.length || marks.length>40) return;
   const texts=[...svgNode.querySelectorAll('text')].map(t=>{ let b; try{b=t.getBBox();}catch(e){return null;} return b?{x:b.x+b.width/2,y:b.y+b.height/2,txt:(t.textContent||'').trim()}:null; }).filter(Boolean);
   marks.forEach(m=>{
+    // Pass 1A: the renderer already drew this value on/beside the mark (or its group) — skip entirely.
+    if(m.getAttribute('data-labelled')==='true' || (m.parentNode && m.parentNode.getAttribute && m.parentNode.getAttribute('data-labelled')==='true')) return;
     const v=m.getAttribute('data-value'); if(v==null||v==='') return;
     let bb; try{ bb=m.getBBox(); }catch(e){ return; } if(!bb||(bb.width<1&&bb.height<1)) return;
     const mcx=bb.x+bb.width/2, mcy=bb.y+bb.height/2;
@@ -3180,8 +3201,90 @@ function addStaticLabels(svgNode, c, type){
     t.setAttribute('font-size','10.5px'); t.setAttribute('font-weight','600'); t.setAttribute('fill',c.ink);
     t.setAttribute('paint-order','stroke'); t.setAttribute('stroke',c.bg); t.setAttribute('stroke-width','2.6'); t.setAttribute('stroke-linejoin','round');
     t.setAttribute('class','cv-staticlabel'); t.textContent=v;
-    svgNode.appendChild(t); texts.push({x:tx,y:ty,txt:v});
+    svgNode.appendChild(t);
+    // Pass 1B: keep the generated label inside the frame — truncate/hide rather than overflow the SVG edge.
+    try{ const vbA=(svgNode.getAttribute('viewBox')||'').split(/\s+/).map(Number), VW=vbA[2]||0;
+      if(VW){ const maxW = anchor==='start' ? (VW-tx-4) : (anchor==='end' ? (tx-4) : 2*Math.min(tx, VW-tx)-4);
+        fitText(t, Math.max(8, maxW)); } }catch(e){}
+    texts.push({x:tx,y:ty,txt:v});
   });
+}
+
+/* ===================================================================
+   Pass 2 — quality gate: only surface candidates that survive validation
+   =================================================================== */
+// Binary pass/fail on a rendered candidate SVG. type informs the aggregation exemption for coverage.
+function validateRender(svgNode, data, type){
+  if(!svgNode) return false;
+  const vb=(svgNode.getAttribute('viewBox')||'0 0 100 100').split(/\s+/).map(Number);
+  const VW=vb[2]||100, VH=vb[3]||100;
+  const box=el=>{ let b; try{b=el.getBBox();}catch(e){return null;} return b; };
+  // 1. Populated — at least one visible data mark with extent in at least one dimension (lines/strokes have ~0 in the other)
+  const dataMarks=[...svgNode.querySelectorAll('.cv-mark')].map(box).filter(b=>b && (b.width>1.2 || b.height>1.2));
+  if(dataMarks.length<1) return false;
+  // 2. No egregiously overflowing text (tolerance band allows legitimate margin/outside labels)
+  const tolX=VW*0.07+10, tolY=VH*0.07+10;
+  const texts=[...svgNode.querySelectorAll('text')].filter(t=>getComputedStyle(t).display!=='none');
+  for(const t of texts){ const b=box(t); if(!b) continue;
+    if(b.x < -tolX || b.y < -tolY || b.x+b.width > VW+tolX || b.y+b.height > VH+tolY) return false; }
+  // 3. No SYSTEMIC duplicated-value double (the Pass-1 renderer+addStaticLabels bug). Pass 1's data-labelled marking
+  //    prevents that; 1–2 coincident same-value labels here are legitimate (two series sharing a value at one x, or two
+  //    cells sharing a category name), so only a cluster (≥3) signals a real double-label regression.
+  // centres in the svg's OWN viewBox units (getBBox is local to each transformed group; getCTM maps it to root coords —
+  // scale-independent, so off-screen validation and the live render agree).
+  const tt=texts.map(t=>{ let bb; try{bb=t.getBBox();}catch(e){return null;} if(!bb) return null;
+    let cx=bb.x+bb.width/2, cy=bb.y+bb.height/2; const m=(t.getCTM&&t.getCTM());
+    if(m){ const x=m.a*cx+m.c*cy+m.e, y=m.b*cx+m.d*cy+m.f; cx=x; cy=y; }
+    return {x:cx,y:cy,txt:(t.textContent||'').trim()}; }).filter(Boolean);
+  let dupPairs=0;
+  for(let i=0;i<tt.length;i++)for(let j=i+1;j<tt.length;j++){ if(tt[i].txt && tt[i].txt===tt[j].txt && Math.abs(tt[i].x-tt[j].x)<3 && Math.abs(tt[i].y-tt[j].y)<3) dupPairs++; }
+  if(dupPairs>=3) return false;
+  // 4. Data coverage — ≥50% of rows represented by visible marks (charts that legitimately aggregate/cap are exempt)
+  const AGG=new Set(['pie','waffle','treemap','sunburst','pack','funnel','marimekko','isotype','pictogram','rankeddotgrid','stacked100','sankey','flow','proparea','halo','radialheat','beeswarm','violin','ridge']);
+  const rc=(data&&data.rows)?data.rows.length:0;
+  if(rc>0 && !AGG.has(type) && dataMarks.length < Math.max(1, Math.ceil(rc*0.5))) return false;
+  return true;
+}
+// Render a candidate off-screen (static view) and validate it, without touching the visible chart or global state.
+function validateCandidate(type, data, insight){
+  if(!RENDERERS[type]) return false;
+  const chart=$('#chart'); if(chart) void chart.offsetWidth;                  // flush layout so clientWidth is the real value
+  const cw=(chart&&chart.clientWidth)||760;
+  const W=Math.max(560, Math.min(cw, 820));                                   // exactly what buildContext() uses for the live render
+  const host=document.createElement('div');
+  host.style.cssText='position:absolute;left:-99999px;top:0;width:'+W+'px;height:auto;visibility:hidden';
+  document.body.appendChild(host);
+  let ok=false;
+  try{
+    const ctx=buildContext(data, type, { c:currentColors(), still:true, static:true, W:W });
+    const sv=d3.select(host).append('svg');
+    RENDERERS[type](sv, ctx);
+    const node=sv.node();
+    try{ addStaticLabels(node, currentColors(), type); }catch(e){}
+    ok=validateRender(node, data, type);
+  }catch(e){ ok=false; }
+  try{ document.body.removeChild(host); }catch(e){}
+  return ok;
+}
+// Full eligible chart pool, highest score first — the replacement source when a curated pick fails the gate.
+function rankedCandidates(data, insight){
+  const p=profileData(data), I=inferIntents(p, insight), scored=[];
+  for(const type in CHART_META){ const s=chartScore(type,p,I); if(s!=null && s>0) scored.push({type,s}); }
+  scored.sort((a,b)=> b.s-a.s || (TYPE_NAMES[a.type]<TYPE_NAMES[b.type]?-1:1));
+  return scored.map(o=>o.type);
+}
+// Build the displayed option set: validate the curated picks, drop failures, pull next-ranked replacements, up to 5.
+function buildGatedRecipes(data, insight){
+  const picks=selectAuto(data, insight), ranked=rankedCandidates(data, insight);
+  const used=new Set(), out=[]; let rejected=0;
+  const consider=o=>{ if(out.length>=5 || used.has(o.type)) return; used.add(o.type);
+    if(validateCandidate(o.type, data, insight)) out.push(o); else rejected++; };
+  picks.forEach(consider);                                                   // curated lead + alts + wildcards first
+  for(const t of ranked){ if(out.length>=5) break; if(used.has(t)) continue; // then replacements by score
+    consider({type:t, lead:false, role:'alt', why:(CHART_META[t]?CHART_META[t].why:'')}); }
+  if(out.length && !out.some(o=>o.lead)) out[0]=Object.assign({}, out[0], {lead:true, role:'lead'});   // promote a survivor to lead
+  if(!out.length && picks.length) out.push(Object.assign({}, picks[0], {lead:true, role:'lead'}));      // never show a blank output
+  return { recipes: out.slice(0,5).map(o=>({type:o.type, c:currentColors(), why:o.why, lead:o.lead, role:o.role})), rejected };
 }
 
 function generate(opt){
@@ -3216,14 +3319,21 @@ function generate(opt){
   GEN = { data, insight };
   const choice = $('#charttype').value;
 
+  // Reveal the output panel BEFORE building options so #chart has its real laid-out width: the Pass-2 gate validates
+  // each candidate off-screen at that exact width, so a candidate can never pass the gate yet break in the live render.
+  $('#placeholder').hidden = true;
+  $('#figure').hidden = false;
+  $('#exportBar').hidden = false;
+
   // Build five options (navigated one-at-a-time, full width):
   //  • Auto  -> five genuinely different chart FORMS suited to this data shape
   //  • a specific type -> five colour/treatment VARIATIONS of that one form
   let recipes;
   if (choice === 'auto'){
-    // deterministic rules engine: lead pick + 2 close alternatives + 2 creative wildcards, each with a rationale
-    const picks = selectAuto(data, insight);
-    recipes = picks.map(o => ({ type:o.type, c: currentColors(), why:o.why, lead:o.lead, role:o.role }));
+    // deterministic rules engine + Pass 2 quality gate: validate each candidate, drop failures, pull next-ranked replacements
+    const gated = buildGatedRecipes(data, insight);
+    recipes = gated.recipes;
+    GEN.gateRejected = gated.rejected;
   } else {
     // manual choice always wins — the selection engine is bypassed entirely
     const want = TYPE_ALIAS[choice] || choice;
@@ -3237,10 +3347,12 @@ function generate(opt){
   GEN.autoMode = (choice === 'auto');
   curOpt = 0; navBusy = false;
 
-  // single full-width output panel
-  $('#placeholder').hidden = true;
-  $('#figure').hidden = false;
-  $('#exportBar').hidden = false;
+  // Pass 2: quiet note when the gate left fewer than 5 surviving options
+  (function(){ let n=document.getElementById('optionCountNote');
+    if(!n){ n=document.createElement('div'); n.id='optionCountNote'; n.style.cssText='font-size:11.5px;font-style:italic;line-height:1.45;margin:12px 2px 0'; const fig=$('#figure'); if(fig) fig.appendChild(n); }
+    if(GEN.autoMode && CARDS.length<5){ const cc=currentColors(); n.textContent='Canopy found '+CARDS.length+' strong option'+(CARDS.length===1?'':'s')+' for this data.'; n.style.color=mix(cc.ink,cc.bg,0.42); n.style.display='block'; }
+    else { n.style.display='none'; }
+  })();
 
   // constant headline + footnote (same data + insight across all five options)
   const headTitle = SHOW_TITLE ? (insight || humanTitle(data, buildContext(data, CARDS[0].type, { c: CARDS[0].c }))) : '';
